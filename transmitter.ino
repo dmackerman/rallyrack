@@ -1,5 +1,5 @@
 // Pickleball Court Button - Transmitter
-// ESP32-C3 SuperMini + arcade button + LED
+// ESP32-C3 DevKitM-01 + arcade button + LED
 // Wakes on button press, sends court ID, sleeps.
 
 #include <esp_now.h>

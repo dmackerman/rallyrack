@@ -1,24 +1,73 @@
-# Pickleball Paddle Rack System
+# RallyRack
+
+```text
+██████╗  █████╗ ██╗     ██╗  ██╗   ██╗██████╗  █████╗  ██████╗██╗  ██╗
+██╔══██╗██╔══██╗██║     ██║  ╚██╗ ██╔╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝
+██████╔╝███████║██║     ██║   ╚████╔╝ ██████╔╝███████║██║     █████╔╝
+██╔══██╗██╔══██║██║     ██║    ╚██╔╝  ██╔══██╗██╔══██║██║     ██╔═██╗
+██║  ██║██║  ██║███████╗███████╗██║   ██║  ██║██║  ██║╚██████╗██║  ██╗
+╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+```
 
 Wireless court availability system using ESP32 + ESP-NOW.
+
+## Shopping List (Adafruit)
+
+Full 8-court setup, all from [adafruit.com](https://www.adafruit.com).
+
+### Core Electronics
+
+| Item | Adafruit PID | Qty | Unit | Subtotal |
+|---|---|---:|---:|---:|
+| Arcade Button with LED - 30mm Translucent Green | [3487](https://www.adafruit.com/product/3487) | 8 | $2.50 | $20.00 |
+| Arcade Button Quick-Connect Wires 0.187" (10-pack) | [3835](https://www.adafruit.com/product/3835) | 1 | $4.95 | $4.95 |
+| Adafruit QT Py S3 w/ 2MB PSRAM (receiver) | [5700](https://www.adafruit.com/product/5700) | 1 | $12.50 | $12.50 |
+| ESP32-C3 DevKitM-01 (transmitters) | [5337](https://www.adafruit.com/product/5337) | 8 | $9.95 | $79.60 |
+| Monochrome 1.3" 128x64 OLED - STEMMA QT | [938](https://www.adafruit.com/product/938) | 1 | $19.95 | $19.95 |
+| Tactile Button switch 6mm (20-pack, for resets) | [367](https://www.adafruit.com/product/367) | 1 | $2.50 | $2.50 |
+| Piezo Buzzer PS1240 | [160](https://www.adafruit.com/product/160) | 1 | $1.50 | $1.50 |
+| 5V 2A switching power supply - UL Listed | [276](https://www.adafruit.com/product/276) | 1 | $7.95 | $7.95 |
+| 470Ω resistors 1/4W (25-pack) | [2781](https://www.adafruit.com/product/2781) | 1 | $0.75 | $0.75 |
+| Premium M/M Jumper Wires 20×6" | [1957](https://www.adafruit.com/product/1957) | 2 | $1.95 | $3.90 |
+| **Core subtotal** | | | | **$153.60** |
+
+### Power + Portable Button Parts
+
+| Item | Adafruit PID | Qty | Unit | Subtotal |
+|---|---|---:|---:|---:|
+| Lithium Ion Polymer Battery 3.7V 350mAh | [2750](https://www.adafruit.com/product/2750) | 8 | $6.95 | $55.60 |
+| Adafruit Micro-Lipo Charger (MicroUSB) | [1904](https://www.adafruit.com/product/1904) | 8 | $6.95 | $55.60 |
+| **Portable subtotal** | | | | **$111.20** |
+
+### Prototyping
+
+| Item | Adafruit PID | Qty | Unit | Subtotal |
+|---|---|---:|---:|---:|
+| Full Sized Breadboard 830 Tie Points | [239](https://www.adafruit.com/product/239) | 2 | $5.95 | $11.90 |
+| **Prototyping subtotal** | | | | **$11.90** |
+
+### Budget Summary
+
+- **All electronics (core + portable + prototyping):** about **$277**
+- You will also need basic tools (soldering iron, solder, wire stripper, multimeter, heat-shrink) which Adafruit does not carry — source from a hardware store or Mouser/DigiKey
 
 ## Hardware
 
 ### Per Court Button (×8)
-- ESP32-C3 SuperMini
+- ESP32-C3 DevKitM-01 ([Adafruit 5337](https://www.adafruit.com/product/5337))
 - [Adafruit 30mm Translucent LED Arcade Button](https://www.adafruit.com/product/3487) (Green or any color)
   - Built-in dual LEDs with 200Ω resistor
   - Works at 3.3V (2mA, dimmer) or 5V (10mA, brighter)
   - Includes switch (NO) and LED contacts
-- LiPo battery + TP4056 charger
-- Optional: [0.11" Quick-Connect Wire Pairs](https://www.adafruit.com/product/1152) for easy assembly
+- LiPo battery ([Adafruit 2750](https://www.adafruit.com/product/2750)) + Micro-Lipo charger ([Adafruit 1904](https://www.adafruit.com/product/1904))
+- [0.187" Quick-Connect Wire Pairs](https://www.adafruit.com/product/3835) for easy assembly
 
 ### Rack Controller (×1)
-- ESP32-S3 dev board
-- WS2812B LED strip (32 LEDs = 4 per court)
+- Adafruit QT Py S3 w/ 2MB PSRAM ([Adafruit 5700](https://www.adafruit.com/product/5700))
 - 8× momentary push buttons (reset)
-- Passive buzzer
-- 5V power supply
+- Passive buzzer ([Adafruit 160](https://www.adafruit.com/product/160))
+- 1.3" I2C OLED display (SSD1306, 128x64) ([Adafruit 938](https://www.adafruit.com/product/938))
+- 5V power supply ([Adafruit 276](https://www.adafruit.com/product/276))
 
 ## Wiring
 
@@ -32,7 +81,7 @@ Wireless court availability system using ESP32 + ESP-NOW.
 ```text
 Transmitter (ESP32-C3 + Arcade Button)
 
-                  ESP32-C3 SuperMini
+                  ESP32-C3 DevKitM-01
                +---------------------+
 GPIO 3 ---| BUTTON_PIN          |
 GPIO10 ---| LED_PIN             |
@@ -59,58 +108,57 @@ GND ------| GND                 |
 | GND     | Arcade LED (-) | Built-in 200Ω resistor in button |
 
 ### Receiver (rack)
-- WS2812B data → GPIO 5 (with 330Ω resistor on data line)
-- WS2812B power → 5V supply (not from ESP32!)
-- Reset buttons → RESET_PINS[] to GND (internal pullups used)
-- Buzzer → GPIO 21
+- Reset buttons → D0..D7 to GND (internal pullups used)
+- Buzzer → D10
+- OLED (SSD1306 I2C) → SDA/SCL + power
 
 ```text
-Receiver Rack (ESP32-S3 + LEDs + Reset Buttons + Buzzer)
+Receiver Rack (QT Py S3 + Reset Buttons + Buzzer + OLED)
 
                                  +----------------------+
-                                 |      ESP32-S3        |
+                                 |   QT Py ESP32-S3     |
                                  |                      |
-GPIO 5 ---------------| LED_DATA             |
-GPIO21 ---------------| BUZZER_PIN           |
-GPIO12 ---------------| RESET Court 1        |
-GPIO13 ---------------| RESET Court 2        |
-GPIO14 ---------------| RESET Court 3        |
-GPIO15 ---------------| RESET Court 4        |
-GPIO16 ---------------| RESET Court 5        |
-GPIO17 ---------------| RESET Court 6        |
-GPIO18 ---------------| RESET Court 7        |
-GPIO19 ---------------| RESET Court 8        |
+D10 ------------------| BUZZER_PIN           |
+D0  ------------------| RESET Court 1        |
+D1  ------------------| RESET Court 2        |
+D2  ------------------| RESET Court 3        |
+D3  ------------------| RESET Court 4        |
+D4  ------------------| RESET Court 5        |
+D5  ------------------| RESET Court 6        |
+D6  ------------------| RESET Court 7        |
+D7  ------------------| RESET Court 8        |
 GND ------------------| GND                  |
                                  +----------------------+
 
-WS2812B Strip:
-   ESP32 GPIO5 --[330Ω]--> DIN
-   5V supply  -----------> +5V
-   5V supply GND --------> GND
-   ESP32 GND ------------> GND  (common ground required)
-
 Reset buttons (one per court):
-   GPIO12..19 ----[button]---- GND
+   D0..D7 --------[button]---- GND
    (uses internal pull-up, so press = LOW)
 
 Buzzer:
-   GPIO21 --------------------> Buzzer signal (+)
+   D10 -----------------------> Buzzer signal (+)
    GND -----------------------> Buzzer (-)
+
+OLED (SSD1306 I2C):
+   QT Py 3V3 -----------------> OLED VCC
+   QT Py GND -----------------> OLED GND
+   QT Py SDA -----------------> OLED SDA
+   QT Py SCL -----------------> OLED SCL
 ```
 
-| ESP32-S3 Pin | Connects To | Notes |
+| QT Py S3 Pin | Connects To | Notes |
 |---|---|---|
-| GPIO 5  | WS2812B DIN (through 330Ω) | `LED_DATA_PIN` |
-| GPIO 21 | Buzzer signal (+) | `BUZZER_PIN` |
-| GPIO 12 | Reset button Court 1 | To GND when pressed |
-| GPIO 13 | Reset button Court 2 | To GND when pressed |
-| GPIO 14 | Reset button Court 3 | To GND when pressed |
-| GPIO 15 | Reset button Court 4 | To GND when pressed |
-| GPIO 16 | Reset button Court 5 | To GND when pressed |
-| GPIO 17 | Reset button Court 6 | To GND when pressed |
-| GPIO 18 | Reset button Court 7 | To GND when pressed |
-| GPIO 19 | Reset button Court 8 | To GND when pressed |
-| GND     | LED strip GND + button return + buzzer (-) | Common ground required |
+| D10 | Buzzer signal (+) | `BUZZER_PIN` |
+| D0  | Reset button Court 1 | To GND when pressed |
+| D1  | Reset button Court 2 | To GND when pressed |
+| D2  | Reset button Court 3 | To GND when pressed |
+| D3  | Reset button Court 4 | To GND when pressed |
+| D4  | Reset button Court 5 | To GND when pressed |
+| D5  | Reset button Court 6 | To GND when pressed |
+| D6  | Reset button Court 7 | To GND when pressed |
+| D7  | Reset button Court 8 | To GND when pressed |
+| SDA | OLED SDA | I2C data line |
+| SCL | OLED SCL | I2C clock line |
+| GND | Button return + buzzer (-) | Common ground required |
 
 ## Getting Started
 
@@ -121,13 +169,12 @@ Buzzer:
    - Arduino IDE → Settings/Preferences → Additional Boards Manager URLs
    - Add: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
    - Go to Boards Manager, search `esp32`, and install **esp32 by Espressif Systems**
-3. Install **FastLED** from Library Manager
+3. Install **Adafruit SSD1306** and **Adafruit GFX Library** from Library Manager
 
 ### 2) Wire hardware
 
 1. Assemble one receiver rack and up to 8 court transmitters using the wiring tables above
 2. Double-check power:
-   - WS2812B strip must use a 5V supply
    - ESP32 boards can stay on USB during development
 
 ### 2.1) Breadboard prototyping (no-solder first pass)
@@ -142,23 +189,19 @@ Use this to validate code and radio links before permanent wiring.
    - ESP32-C3 `GPIO10` → LED anode (+)
    - ESP32-C3 `GND` → LED cathode (-)
 4. Prototype receiver wiring:
-   - ESP32-S3 `GPIO5` → WS2812B DIN (through ~330Ω resistor)
-   - 5V supply `+` → WS2812B `+5V`
-   - 5V supply `-` → WS2812B `GND`
-   - ESP32-S3 `GND` → same ground rail (common ground)
-   - ESP32-S3 `GPIO12` → reset button leg A, leg B → `GND`
-   - ESP32-S3 `GPIO21` → buzzer `+`, buzzer `-` → `GND`
-5. Keep ESP32 boards on USB power while prototyping; power LED strip from external 5V
+   - QT Py S3 `D0` → reset button leg A, leg B → `GND`
+   - QT Py S3 `D10` → buzzer `+`, buzzer `-` → `GND`
+   - OLED: `3V3`→`VCC`, `GND`→`GND`, `SDA`→`SDA`, `SCL`→`SCL`
+5. Keep ESP32 boards on USB power while prototyping
 6. Flash and test with `COURT_ID=1` first, then scale to additional courts
 
 Prototype tips:
 - Breadboard rail labels can be inconsistent; verify continuity with a multimeter
-- If LEDs behave randomly, check that all grounds are tied together
-- Keep WS2812B data wire short during initial testing
+- Make sure all grounds are tied together
 
 ### 3) Configure receiver and transmitters
 
-1. Flash `get_mac_address.ino` to the receiver ESP32-S3
+1. Flash `get_mac_address.ino` to the receiver QT Py S3
 2. Open Serial Monitor and copy the receiver MAC address
 3. In `transmitter/config.h`, set:
    - `uint8_t RECEIVER_MAC[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};`
@@ -168,7 +211,7 @@ Prototype tips:
 ### 4) Flash firmware
 
 1. **Receiver:**
-   - Board: `ESP32S3 Dev Module`
+   - Board: `Adafruit QT Py ESP32-S3 No PSRAM` (or similar, depending on core version)
    - Sketch: `receiver.ino`
 2. **Transmitters (each unit):**
    - Board: `ESP32C3 Dev Module`
@@ -176,12 +219,12 @@ Prototype tips:
 3. Select the correct serial port before each upload
 4. If upload fails, hold **BOOT** while connecting/uploading
 
-### 4.1) USB + programming notes (ESP32-S3 / ESP32-C3)
+### 4.1) USB + programming notes (QT Py S3 / ESP32-C3)
 
-1. Most ESP32-S3 and ESP32-C3 dev boards include an onboard USB port (usually USB-C, sometimes micro-USB)
+1. QT Py S3 and ESP32-C3 DevKitM-01 both include onboard USB-C
 2. Use a **data-capable USB cable** (charge-only cables will power the board but uploads fail)
 3. In Arduino IDE:
-   - Select board (`ESP32S3 Dev Module` or `ESP32C3 Dev Module`)
+   - Select board (`Adafruit QT Py ESP32-S3 No PSRAM` or `ESP32C3 Dev Module`)
    - Select the serial port under Tools → Port
 4. If upload stalls at connecting:
    - Hold **BOOT**
@@ -193,12 +236,32 @@ Prototype tips:
 ### 5) Verify operation
 
 1. Press a court button transmitter
-2. Confirm rack LED segment for that court turns green and buzzer chirps
-3. Press that court's reset button on the rack and confirm LEDs turn off
+2. Confirm buzzer chirps and OLED shows that court as available
+3. Press that court's reset button on the rack and confirm OLED updates
+
+### 6) Wait-time display + serial debug (MVP)
+
+The receiver tracks per-court wait times and updates a running average when each court is reset.
+
+- OLED header shows overall average wait time (minutes)
+- OLED auto-pages every few seconds:
+   - Page 1: Courts 1-4
+   - Page 2: Courts 5-8
+- Per-court OLED format:
+   - `N` = live wait now (while court is available)
+   - `A` = running average wait for that court
+
+Open Serial Monitor at `115200` to view debug events:
+
+- Court becomes available: `[AVAILABLE] Court 3 now open`
+- Duplicate available while already open: `[AVAILABLE] Court 3 already open (now=2m)`
+- Court reset with sample update: `[RESET] Court 3 wait=7m avg=5m n=12`
+- Reset with no active wait: `[RESET] Court 3 pressed with no active wait`
 
 ## How It Works
 
 1. Players finish → press court button
 2. Button wakes from deep sleep → sends court ID via ESP-NOW → flashes LED → sleeps
-3. Rack lights up that court's LED segment green + buzzer chirp
-4. Next group grabs paddles → presses reset button on rack → LEDs turn off
+3. Rack buzzer chirps + OLED shows court as available + starts wait timer
+4. OLED shows live per-court wait (`N`) and running average (`A`)
+5. Next group grabs paddles → presses reset button on rack → OLED updates and average recalculates
