@@ -9,21 +9,27 @@
 volatile bool sendDone = false;
 volatile bool sendOk = false;
 
-void onSent(const uint8_t *mac, esp_now_send_status_t status) {
+void onSent(const uint8_t *mac, esp_now_send_status_t status)
+{
+  (void)mac;
   sendOk = (status == ESP_NOW_SEND_SUCCESS);
   sendDone = true;
 }
 
-void flashLED(int times, int ms) {
-  for (int i = 0; i < times; i++) {
+void flashLED(int times, int ms)
+{
+  for (int i = 0; i < times; i++)
+  {
     digitalWrite(LED_PIN, HIGH);
     delay(ms);
     digitalWrite(LED_PIN, LOW);
-    if (i < times - 1) delay(ms);
+    if (i < times - 1)
+      delay(ms);
   }
 }
 
-void setup() {
+void setup()
+{
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -32,8 +38,9 @@ void setup() {
   WiFi.disconnect();
 
   // Init ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    flashLED(5, 100);  // rapid flash = init error
+  if (esp_now_init() != ESP_OK)
+  {
+    flashLED(5, 100); // rapid flash = init error
     esp_deep_sleep_start();
   }
 
@@ -52,15 +59,19 @@ void setup() {
 
   // Wait for send callback
   unsigned long start = millis();
-  while (!sendDone && (millis() - start < SEND_TIMEOUT_MS)) {
+  while (!sendDone && (millis() - start < SEND_TIMEOUT_MS))
+  {
     delay(10);
   }
 
   // Flash confirmation
-  if (sendOk) {
-    flashLED(1, LED_FLASH_MS);   // one solid flash = success
-  } else {
-    flashLED(3, 100);            // three quick flashes = fail
+  if (sendOk)
+  {
+    flashLED(1, LED_FLASH_MS); // one solid flash = success
+  }
+  else
+  {
+    flashLED(3, 100); // three quick flashes = fail
   }
 
   // Go to deep sleep, wake on button press
@@ -68,6 +79,7 @@ void setup() {
   esp_deep_sleep_start();
 }
 
-void loop() {
+void loop()
+{
   // Never reached — device sleeps after setup
 }

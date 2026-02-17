@@ -8,6 +8,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "config.h"
+
 bool courtAvailable[NUM_COURTS] = {false};
 unsigned long lastResetPress[NUM_COURTS] = {0};
 unsigned long availableSinceMs[NUM_COURTS] = {0};
@@ -102,8 +103,10 @@ void updateDisplay()
 }
 
 // Called when an ESP-NOW packet arrives
-void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int len)
+void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 {
+  (void)mac;
+
   if (len < 1)
     return;
 

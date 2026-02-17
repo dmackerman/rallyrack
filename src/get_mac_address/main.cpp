@@ -4,9 +4,11 @@
 
 #include <WiFi.h>
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(1000);
+  WiFi.mode(WIFI_STA);
   Serial.print("Receiver MAC Address: ");
   Serial.println(WiFi.macAddress());
 }

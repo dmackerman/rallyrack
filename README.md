@@ -164,12 +164,24 @@ OLED (SSD1306 I2C):
 
 ### 1) Install tools
 
-1. Install **Arduino IDE 2.x** from [arduino.cc](https://www.arduino.cc/en/software)
-2. Add **ESP32 board support**:
-   - Arduino IDE → Settings/Preferences → Additional Boards Manager URLs
-   - Add: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-   - Go to Boards Manager, search `esp32`, and install **esp32 by Espressif Systems**
-3. Install **Adafruit SSD1306** and **Adafruit GFX Library** from Library Manager
+1. Install **PlatformIO** (either option below):
+   - **VS Code extension:** install `PlatformIO IDE`
+   - **CLI:** install `platformio` (`pio`) and verify with `pio --version`
+2. Clone this repo and open it as a PlatformIO project root (folder containing `platformio.ini`)
+3. PlatformIO will automatically install board packages and libraries on first build/upload
+
+### 1.1) Project targets (PlatformIO environments)
+
+- `receiver` → QT Py S3 rack controller firmware
+- `transmitter` → ESP32-C3 court button firmware
+- `get_mac_address` → utility to print receiver MAC
+
+Code locations:
+- `src/receiver/main.cpp`
+- `src/transmitter/main.cpp`
+- `src/get_mac_address/main.cpp`
+- `receiver/config.h`
+- `transmitter/config.h`
 
 ### 2) Wire hardware
 
@@ -201,9 +213,11 @@ Prototype tips:
 
 ### 3) Configure receiver and transmitters
 
-1. Flash `get_mac_address.ino` to the receiver QT Py S3
-2. Open Serial Monitor and copy the receiver MAC address
-3. In `transmitter/config.h`, set:
+1. Build/upload the MAC utility to the receiver QT Py S3:
+   - `pio run -e get_mac_address -t upload`
+2. Open Serial Monitor at 115200 baud — the MAC prints on startup (e.g. `AA:BB:CC:DD:EE:FF`)
+   - `pio device monitor -b 115200`
+3. In `transmitter/config.h`, paste it in as:
    - `uint8_t RECEIVER_MAC[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};`
 4. For each transmitter unit, set a unique `COURT_ID` (1 to 8)
 5. In `receiver/config.h`, confirm pin assignments and `NUM_COURTS`
@@ -211,27 +225,29 @@ Prototype tips:
 ### 4) Flash firmware
 
 1. **Receiver:**
-   - Board: `Adafruit QT Py ESP32-S3 No PSRAM` (or similar, depending on core version)
-   - Sketch: `receiver.ino`
+   - Env: `receiver`
+   - Command: `pio run -e receiver -t upload`
 2. **Transmitters (each unit):**
-   - Board: `ESP32C3 Dev Module`
-   - Sketch: `transmitter.ino`
-3. Select the correct serial port before each upload
+   - Env: `transmitter`
+   - Command: `pio run -e transmitter -t upload`
+3. If needed, set an explicit serial port:
+   - `pio run -e receiver -t upload --upload-port /dev/cu.usbmodemXXXX`
+   - `pio run -e transmitter -t upload --upload-port /dev/cu.usbmodemXXXX`
 4. If upload fails, hold **BOOT** while connecting/uploading
 
 ### 4.1) USB + programming notes (QT Py S3 / ESP32-C3)
 
 1. QT Py S3 and ESP32-C3 DevKitM-01 both include onboard USB-C
 2. Use a **data-capable USB cable** (charge-only cables will power the board but uploads fail)
-3. In Arduino IDE:
-   - Select board (`Adafruit QT Py ESP32-S3 No PSRAM` or `ESP32C3 Dev Module`)
-   - Select the serial port under Tools → Port
+3. In PlatformIO:
+   - Choose env (`receiver`, `transmitter`, or `get_mac_address`)
+   - Use `--upload-port` when multiple serial devices are connected
 4. If upload stalls at connecting:
    - Hold **BOOT**
-   - Click Upload
-   - Release **BOOT** when "Connecting..." appears
+   - Run upload command
+   - Release **BOOT** when "Connecting..." appears in console
    - Tap **RESET** once if needed
-5. Different dev boards may expose either native USB CDC or USB-to-UART, but both should appear as a serial port in Arduino IDE
+5. Different dev boards may expose either native USB CDC or USB-to-UART, but both should appear as serial devices for PlatformIO
 
 ### 5) Verify operation
 
