@@ -309,6 +309,29 @@ Tests cover:
 
 Tests run instantly (~400ms) and catch regressions before flashing hardware.
 
+### OLED Preview (No Hardware)
+
+You can render a text preview of the OLED screen on your computer using the same fixture state as the unit tests:
+
+```bash
+# Render both pages
+pio run -e oled_preview -t run
+
+# Render a single page
+pio run -e oled_preview -t run -D run_args="--page 1"
+```
+
+Example output:
+
+```text
+RallyRack Wait Avg
+Overall: 3m  P1/2
+C1 U: 4m A: 2m
+C2 N: 1m A: 3m
+C3 N: -- A: 2m
+C4 N: 5m A: 4m
+```
+
 ### Building Without Hardware
 
 ```bash

@@ -1,5 +1,6 @@
 #include <unity.h>
 #include "receiver_logic.h"
+#include "receiver_fixture.h"
 
 // ============================================
 // TIME CONVERSION TESTS
@@ -313,6 +314,19 @@ void test_display_text_multiple_courts()
   TEST_ASSERT_EQUAL_STRING("C3 U: 5m A: 4m", display3.buffer);
 }
 
+void test_display_text_preview_fixture()
+{
+  SystemState state;
+  seedPreviewState(state);
+
+  CourtDisplayText display;
+  display.generate(state.courts[0], 1, kPreviewNowMs);
+  TEST_ASSERT_EQUAL_STRING("C1 U: 4m A: 2m", display.buffer);
+
+  display.generate(state.courts[1], 2, kPreviewNowMs);
+  TEST_ASSERT_EQUAL_STRING("C2 N: 1m A: 3m", display.buffer);
+}
+
 // ============================================
 // BOUNDARY & EDGE CASE TESTS
 // ============================================
@@ -435,6 +449,7 @@ int main(int argc, char **argv)
   RUN_TEST(test_display_text_inuse);
   RUN_TEST(test_display_text_inuse_long_time);
   RUN_TEST(test_display_text_multiple_courts);
+  RUN_TEST(test_display_text_preview_fixture);
 
   // Boundary and edge case tests
   RUN_TEST(test_invalid_court_ids);
