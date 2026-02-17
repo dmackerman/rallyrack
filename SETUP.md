@@ -174,7 +174,34 @@ All settings are in [include/rallyrack_config.h](include/rallyrack_config.h):
 
 ## Building and Testing Without Hardware
 
-You can still compile the code to catch errors:
+### Unit Tests (No Hardware Required)
+
+RallyRack includes a comprehensive test suite that runs on your computer without any hardware:
+
+```bash
+# Run all 21 tests
+pio test -e test
+
+# Run with verbose output to see individual test results
+pio test -e test -vv
+
+# Run specific test (if you want to narrow down)
+pio test -e test -vv
+```
+
+The test suite covers:
+- Time calculations (minute conversion, rounding)
+- Court state machine (available → in-use → returned)
+- Wait time averaging across multiple cycles
+- Display formatting
+- Debouncing and edge cases
+- Multi-court independence
+
+Tests run instantly without hardware and can catch bugs before flashing.
+
+### Building Firmware
+
+You can compile the code without hardware:
 
 ```bash
 # Build all environments
@@ -187,3 +214,14 @@ pio run -e get_mac_address
 ```
 
 If hardware isn't connected, you'll get a build success but no upload. That's expected.
+
+### Debugging Display Output
+
+To test what the OLED will display without an actual display, look at the test file: [test/test_receiver_logic.cpp](test/test_receiver_logic.cpp)
+
+Each court status generates text like:
+- `C1 N: -- A: 2m` — Court idle, average wait 2 minutes
+- `C1 N: 5m A: 2m` — Court available for 5 min now, historically 2 min
+- `C1 U: 4m A: 2m` — Court in use for 4 min, historical average 2 min
+
+You can modify tests to verify display logic before hardware arrives.

@@ -10,8 +10,10 @@
 #include "config.h"
 
 bool courtAvailable[NUM_COURTS] = {false};
+bool courtInUse[NUM_COURTS] = {false};
 unsigned long lastResetPress[NUM_COURTS] = {0};
 unsigned long availableSinceMs[NUM_COURTS] = {0};
+unsigned long inUseSinceMs[NUM_COURTS] = {0};
 float avgWaitMs[NUM_COURTS] = {0};
 uint32_t waitSamples[NUM_COURTS] = {0};
 bool oledReady = false;
@@ -79,22 +81,27 @@ void updateDisplay()
   for (int row = 0; row < 4; row++)
   {
     int court = baseCourt + row;
-    unsigned long nowWaitMs = 0;
-    if (courtAvailable[court] && availableSinceMs[court] > 0)
-    {
-      nowWaitMs = now - availableSinceMs[court];
-    }
-
-    unsigned long nowWaitMin = minutesFromMs(nowWaitMs);
     unsigned long avgMin = minutesFromMs((unsigned long)(avgWaitMs[court] + 0.5f));
 
     display.setCursor(0, 20 + (row * 11));
-    if (courtAvailable[court])
+
+    if (courtInUse[court] && inUseSinceMs[court] > 0)
     {
+      // Court is in use - show in-use timer
+      unsigned long inUseMs = now - inUseSinceMs[court];
+      unsigned long inUseMin = minutesFromMs(inUseMs);
+      display.printf("C%d U:%2lum A:%2lum", court + 1, inUseMin, avgMin);
+    }
+    else if (courtAvailable[court] && availableSinceMs[court] > 0)
+    {
+      // Court is available - show available timer
+      unsigned long nowWaitMs = now - availableSinceMs[court];
+      unsigned long nowWaitMin = minutesFromMs(nowWaitMs);
       display.printf("C%d N:%2lum A:%2lum", court + 1, nowWaitMin, avgMin);
     }
     else
     {
+      // Court is idle - show average only
       display.printf("C%d N: -- A:%2lum", court + 1, avgMin);
     }
   }
@@ -115,6 +122,15 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
     return;
 
   int courtIndex = courtId - 1;
+
+  // If court was in use, stop the in-use timer
+  if (courtInUse[courtIndex])
+  {
+    courtInUse[courtIndex] = false;
+    inUseSinceMs[courtIndex] = 0;
+    Serial.printf("[AVAILABLE] Court %d returned (in-use timer stopped)\n", courtId);
+  }
+
   if (!courtAvailable[courtIndex])
   {
     courtAvailable[courtIndex] = true;
@@ -162,6 +178,12 @@ void checkResetButtons()
 
         courtAvailable[court] = false;
         availableSinceMs[court] = 0;
+
+        // Start in-use timer
+        courtInUse[court] = true;
+        inUseSinceMs[court] = now;
+        Serial.printf("[RESET] Court %d now in use (timer started)\n", court + 1);
+
         lastResetPress[court] = now;
       }
     }

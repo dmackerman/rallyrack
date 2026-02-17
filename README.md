@@ -283,3 +283,56 @@ Open Serial Monitor at `115200` to view debug events:
 3. Rack buzzer chirps + OLED shows court as available + starts wait timer
 4. OLED shows live per-court wait (`N`) and running average (`A`)
 5. Next group grabs paddles → presses reset button on rack → OLED updates and average recalculates
+
+## Testing & Development
+
+### Unit Tests (No Hardware)
+
+RallyRack includes 21 unit tests that validate all receiver logic without any hardware:
+
+```bash
+# Run all tests
+pio test -e test
+
+# Verbose output
+pio test -e test -vv
+```
+
+Tests cover:
+- Time calculations and rounding
+- Court state machine (idle → available → in-use → returned)
+- Wait-time averaging across multiple cycles
+- Display formatting and rendering
+- Debouncing logic
+- Multi-court independence
+- Edge cases and boundary conditions
+
+Tests run instantly (~400ms) and catch regressions before flashing hardware.
+
+### Building Without Hardware
+
+```bash
+# Build all environments (no upload without hardware)
+pio run
+
+# Build specific environments
+pio run -e receiver
+pio run -e transmitter
+pio run -e get_mac_address
+```
+
+### Display Output Format
+
+When testing, courts display in one of these states:
+
+- `C1 N: -- A: 2m` — Court **idle**, average wait is 2 minutes
+- `C1 N: 5m A: 2m` — Court **available** for 5 minutes now, historically 2-minute average
+- `C1 U: 4m A: 2m` — Court **in use** for 4 minutes, historical average 2 minutes
+
+## Setup & Deployment
+
+See [SETUP.md](SETUP.md) for:
+- MAC address discovery and configuration
+- Per-unit customization (court IDs)
+- Flashing all devices
+- Troubleshooting
