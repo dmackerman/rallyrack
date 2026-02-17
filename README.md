@@ -180,6 +180,7 @@ Code locations:
 - `src/receiver/main.cpp`
 - `src/transmitter/main.cpp`
 - `src/get_mac_address/main.cpp`
+- `include/rallyrack_config.h`
 - `receiver/config.h`
 - `transmitter/config.h`
 
@@ -220,7 +221,8 @@ Prototype tips:
 3. In `transmitter/config.h`, paste it in as:
    - `uint8_t RECEIVER_MAC[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};`
 4. For each transmitter unit, set a unique `COURT_ID` (1 to 8)
-5. In `receiver/config.h`, confirm pin assignments and `NUM_COURTS`
+5. In `receiver/config.h`, confirm receiver-specific pin assignments
+6. In `include/rallyrack_config.h`, confirm shared settings like `NUM_COURTS`
 
 ### 4) Flash firmware
 

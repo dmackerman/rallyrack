@@ -1,5 +1,6 @@
 # PlatformIO build output
 .pio/
+.platformio/
 
 # PlatformIO local IDE settings
 .vscode/.browse.c_cpp.db*
@@ -7,12 +8,35 @@
 .vscode/launch.json
 .vscode/ipch/
 
+# Build outputs
+build/
+dist/
+*.elf
+*.hex
+*.bin
+*.a
+*.o
+*.so
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
 # macOS
 .DS_Store
 
 # Python cache (for helper scripts)
 __pycache__/
 *.py[cod]
+*.pyc
+env/
+venv/
 
 # Logs
 *.log
+
+# Temporary files
+*.tmp
+.tmp/
