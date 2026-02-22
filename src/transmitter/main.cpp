@@ -20,18 +20,36 @@ void flashLED(int times, int ms)
 {
   for (int i = 0; i < times; i++)
   {
-    digitalWrite(LED_PIN, HIGH);
+    ledcWrite(0, 255);
     delay(ms);
-    digitalWrite(LED_PIN, LOW);
+    ledcWrite(0, 0);
     if (i < times - 1)
       delay(ms);
   }
 }
 
+void pulseBurst(int times)
+{
+  for (int i = 0; i < times; i++)
+  {
+    // Instant on at full brightness
+    ledcWrite(0, 255);
+    delay(60);
+    // Slow fade out
+    for (int b = 255; b >= 0; b -= 4)
+    {
+      ledcWrite(0, b);
+      delay(8);
+    }
+    delay(40);
+  }
+}
+
 void setup()
 {
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  ledcSetup(0, 5000, 8); // channel 0, 5kHz, 8-bit
+  ledcAttachPin(LED_PIN, 0);
+  ledcWrite(0, 0);
 
   // Init WiFi in station mode (required for ESP-NOW)
   WiFi.mode(WIFI_STA);
@@ -67,7 +85,7 @@ void setup()
   // Flash confirmation
   if (sendOk)
   {
-    flashLED(1, LED_FLASH_MS); // one solid flash = success
+    pulseBurst(5); // pulse burst x5 = success
   }
   else
   {

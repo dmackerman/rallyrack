@@ -39,8 +39,12 @@
 // ============================================
 
 // Reset buttons on the rack (one per court)
-// QT Py S3 pin labels for courts 1-8
-const int RESET_PINS[NUM_COURTS] = {D0, D1, D2, D3, D4, D5, D6, D7};
+// Court 1: A0 (GPIO 17) | Courts 2-8: A2, A3, TX, RX, MOSI, MISO, SCK
+const int RESET_PINS[NUM_COURTS] = {17, 7, 8, 6, 5, 35, 37, 36};
+
+// LED pins inside each reset button (-1 = not wired yet)
+// Court 1: A1 (GPIO 18)
+const int RESET_LED_PINS[NUM_COURTS] = {18, -1, -1, -1, -1, -1, -1, -1};
 
 // Buzzer
 #define BUZZER_PIN D10
@@ -48,6 +52,9 @@ const int RESET_PINS[NUM_COURTS] = {D0, D1, D2, D3, D4, D5, D6, D7};
 #define BUZZER_MS 150
 
 // OLED display (I2C)
+// QT Py ESP32-S3 SDA/SCL header pins (same as STEMMA QT)
+#define OLED_SDA 41
+#define OLED_SCL 40
 #define OLED_WIDTH 128
 #define OLED_HEIGHT 64
 #define OLED_I2C_ADDR 0x3C
@@ -77,4 +84,4 @@ const int RESET_PINS[NUM_COURTS] = {D0, D1, D2, D3, D4, D5, D6, D7};
 
 // Receiver MAC address (get this from get_mac_address utility)
 // Replace with your actual receiver MAC
-uint8_t RECEIVER_MAC[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t RECEIVER_MAC[] = {0xB4, 0x3A, 0x45, 0xB0, 0xD5, 0x14};

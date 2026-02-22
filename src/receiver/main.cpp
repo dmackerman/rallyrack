@@ -109,6 +109,28 @@ void updateDisplay()
   display.display();
 }
 
+void updateCourtLEDs()
+{
+  // Triangle wave 0→255→0 over ~2 seconds
+  uint16_t phase = (millis() / 4) % 510;
+  uint8_t brightness = (phase > 255) ? (510 - phase) : phase;
+
+  for (int i = 0; i < NUM_COURTS; i++)
+  {
+    if (RESET_LED_PINS[i] == -1)
+      continue;
+
+    if (courtAvailable[i])
+    {
+      ledcWrite(i, brightness); // pulse when court needs to be reset
+    }
+    else
+    {
+      ledcWrite(i, 0); // off when idle or in use
+    }
+  }
+}
+
 // Called when an ESP-NOW packet arrives
 void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 {
@@ -193,11 +215,18 @@ void checkResetButtons()
 void setup()
 {
   Serial.begin(115200);
+  delay(3000); // wait for serial monitor to connect
 
-  // Init reset button pins
+  // Init reset button pins + LEDs
   for (int i = 0; i < NUM_COURTS; i++)
   {
     pinMode(RESET_PINS[i], INPUT_PULLUP);
+    if (RESET_LED_PINS[i] != -1)
+    {
+      ledcSetup(i, 5000, 8);
+      ledcAttachPin(RESET_LED_PINS[i], i);
+      ledcWrite(i, 0);
+    }
   }
 
   // Init buzzer
@@ -215,10 +244,25 @@ void setup()
 
   esp_now_register_recv_cb(onReceive);
 
+  // I2C scan
+  Wire.begin(OLED_SDA, OLED_SCL);
+  Serial.println("Scanning I2C bus...");
+  for (uint8_t addr = 1; addr < 127; addr++)
+  {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0)
+    {
+      Serial.printf("  Found device at 0x%02X\n", addr);
+    }
+  }
+
   // Init OLED
   oledReady = display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDR);
   if (oledReady)
   {
+    Serial.println("OLED init OK");
+    display.ssd1306_command(SSD1306_DISPLAYON);
+    display.dim(false);
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
@@ -227,6 +271,7 @@ void setup()
     display.setCursor(0, 12);
     display.print("Wait time tracker");
     display.display();
+    Serial.println("OLED splash drawn");
   }
   else
   {
@@ -241,6 +286,7 @@ void setup()
 void loop()
 {
   checkResetButtons();
+  updateCourtLEDs();
   updateDisplay();
-  delay(50);
+  delay(20);
 }
