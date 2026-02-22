@@ -175,6 +175,9 @@ void checkResetButtons()
 
   for (int court = 0; court < NUM_COURTS; court++)
   {
+    if (RESET_PINS[court] == -1)
+      continue;
+
     if (digitalRead(RESET_PINS[court]) == LOW)
     { // pressed (pulled low)
       if (now - lastResetPress[court] > DEBOUNCE_MS)
@@ -220,7 +223,8 @@ void setup()
   // Init reset button pins + LEDs
   for (int i = 0; i < NUM_COURTS; i++)
   {
-    pinMode(RESET_PINS[i], INPUT_PULLUP);
+    if (RESET_PINS[i] != -1)
+      pinMode(RESET_PINS[i], INPUT_PULLUP);
     if (RESET_LED_PINS[i] != -1)
     {
       ledcSetup(i, 5000, 8);

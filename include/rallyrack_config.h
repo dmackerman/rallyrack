@@ -39,12 +39,12 @@
 // ============================================
 
 // Reset buttons on the rack (one per court)
-// Court 1: A0 (GPIO 17) | Courts 2-8: A2, A3, TX, RX, MOSI, MISO, SCK
-const int RESET_PINS[NUM_COURTS] = {17, 7, 8, 6, 5, 35, 37, 36};
+// Set pin to -1 if not yet wired
+// QT Py ESP32-S3 available header pins: A0=17, A1=18, A2=7, A3=8, TX=6, RX=5, MOSI=35, MISO=37
+const int RESET_PINS[NUM_COURTS] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 // LED pins inside each reset button (-1 = not wired yet)
-// Court 1: A1 (GPIO 18)
-const int RESET_LED_PINS[NUM_COURTS] = {18, -1, -1, -1, -1, -1, -1, -1};
+const int RESET_LED_PINS[NUM_COURTS] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 // Buzzer
 #define BUZZER_PIN D10
@@ -57,7 +57,7 @@ const int RESET_LED_PINS[NUM_COURTS] = {18, -1, -1, -1, -1, -1, -1, -1};
 #define OLED_SCL 40
 #define OLED_WIDTH 128
 #define OLED_HEIGHT 64
-#define OLED_I2C_ADDR 0x3C
+#define OLED_I2C_ADDR 0x3D
 #define OLED_UPDATE_MS 500
 #define OLED_PAGE_MS 2500
 
