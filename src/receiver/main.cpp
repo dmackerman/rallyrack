@@ -1,6 +1,6 @@
 // Pickleball Paddle Rack - Receiver / Controller
-// Adafruit QT Py S3 + reset buttons + buzzer + OLED
-// Listens for court-available signals, updates OLED, resets on button press.
+// Adafruit QT Py S3 + buzzer + OLED
+// Receives court state (occupied/available) from transmitters via ESP-NOW.
 
 #include <esp_now.h>
 #include <WiFi.h>
@@ -11,7 +11,6 @@
 
 bool courtAvailable[NUM_COURTS] = {false};
 bool courtInUse[NUM_COURTS] = {false};
-unsigned long lastResetPress[NUM_COURTS] = {0};
 unsigned long availableSinceMs[NUM_COURTS] = {0};
 unsigned long inUseSinceMs[NUM_COURTS] = {0};
 float avgWaitMs[NUM_COURTS] = {0};
@@ -109,108 +108,69 @@ void updateDisplay()
   display.display();
 }
 
-void updateCourtLEDs()
-{
-  // Triangle wave 0→255→0 over ~2 seconds
-  uint16_t phase = (millis() / 4) % 510;
-  uint8_t brightness = (phase > 255) ? (510 - phase) : phase;
-
-  for (int i = 0; i < NUM_COURTS; i++)
-  {
-    if (RESET_LED_PINS[i] == -1)
-      continue;
-
-    if (courtAvailable[i])
-    {
-      ledcWrite(i, brightness); // pulse when court needs to be reset
-    }
-    else
-    {
-      ledcWrite(i, 0); // off when idle or in use
-    }
-  }
-}
-
 // Called when an ESP-NOW packet arrives
 void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 {
   (void)mac;
 
-  if (len < 1)
+  if (len < (int)sizeof(CourtPacket))
     return;
 
-  uint8_t courtId = data[0];
-  if (courtId < 1 || courtId > NUM_COURTS)
+  CourtPacket pkt;
+  memcpy(&pkt, data, sizeof(pkt));
+
+  if (pkt.courtId < 1 || pkt.courtId > NUM_COURTS)
     return;
 
-  int courtIndex = courtId - 1;
+  int i = pkt.courtId - 1;
+  unsigned long now = millis();
 
-  // If court was in use, stop the in-use timer
-  if (courtInUse[courtIndex])
+  if (pkt.occupied)
   {
-    courtInUse[courtIndex] = false;
-    inUseSinceMs[courtIndex] = 0;
-    Serial.printf("[AVAILABLE] Court %d returned (in-use timer stopped)\n", courtId);
-  }
-
-  if (!courtAvailable[courtIndex])
-  {
-    courtAvailable[courtIndex] = true;
-    availableSinceMs[courtIndex] = millis();
-    Serial.printf("[AVAILABLE] Court %d now open\n", courtId);
+    if (!courtInUse[i])
+    {
+      // Transition: available → occupied
+      // Record how long the court waited before being claimed
+      if (courtAvailable[i] && availableSinceMs[i] > 0)
+      {
+        unsigned long waitMs = now - availableSinceMs[i];
+        waitSamples[i]++;
+        avgWaitMs[i] += (waitMs - avgWaitMs[i]) / waitSamples[i];
+        Serial.printf("[OCCUPIED] Court %d claimed, wait=%lum avg=%lum\n",
+                      pkt.courtId,
+                      minutesFromMs(waitMs),
+                      minutesFromMs((unsigned long)(avgWaitMs[i] + 0.5f)));
+      }
+      else
+      {
+        Serial.printf("[OCCUPIED] Court %d now in use\n", pkt.courtId);
+      }
+      courtAvailable[i] = false;
+      availableSinceMs[i] = 0;
+      courtInUse[i] = true;
+      inUseSinceMs[i] = now;
+      tone(BUZZER_PIN, BUZZER_FREQ, BUZZER_MS);
+    }
+    else
+    {
+      Serial.printf("[HEARTBEAT] Court %d still in use\n", pkt.courtId);
+    }
   }
   else
   {
-    unsigned long nowWaitMs = millis() - availableSinceMs[courtIndex];
-    Serial.printf("[AVAILABLE] Court %d already open (now=%lum)\n", courtId, minutesFromMs(nowWaitMs));
-  }
-
-  // Buzzer chirp
-  tone(BUZZER_PIN, BUZZER_FREQ, BUZZER_MS);
-}
-
-void checkResetButtons()
-{
-  unsigned long now = millis();
-
-  for (int court = 0; court < NUM_COURTS; court++)
-  {
-    if (RESET_PINS[court] == -1)
-      continue;
-
-    if (digitalRead(RESET_PINS[court]) == LOW)
-    { // pressed (pulled low)
-      if (now - lastResetPress[court] > DEBOUNCE_MS)
-      {
-        if (courtAvailable[court] && availableSinceMs[court] > 0)
-        {
-          unsigned long waitMs = now - availableSinceMs[court];
-          waitSamples[court]++;
-          avgWaitMs[court] += (waitMs - avgWaitMs[court]) / waitSamples[court];
-
-          unsigned long waitMin = minutesFromMs(waitMs);
-          unsigned long avgMin = minutesFromMs((unsigned long)(avgWaitMs[court] + 0.5f));
-          Serial.printf("[RESET] Court %d wait=%lum avg=%lum n=%lu\n",
-                        court + 1,
-                        waitMin,
-                        avgMin,
-                        (unsigned long)waitSamples[court]);
-        }
-        else
-        {
-          Serial.printf("[RESET] Court %d pressed with no active wait\n", court + 1);
-        }
-
-        courtAvailable[court] = false;
-        availableSinceMs[court] = 0;
-
-        // Start in-use timer
-        courtInUse[court] = true;
-        inUseSinceMs[court] = now;
-        Serial.printf("[RESET] Court %d now in use (timer started)\n", court + 1);
-
-        lastResetPress[court] = now;
-      }
+    if (!courtAvailable[i])
+    {
+      // Transition: occupied → available
+      courtInUse[i] = false;
+      inUseSinceMs[i] = 0;
+      courtAvailable[i] = true;
+      availableSinceMs[i] = now;
+      Serial.printf("[AVAILABLE] Court %d now open\n", pkt.courtId);
+      tone(BUZZER_PIN, BUZZER_FREQ, BUZZER_MS);
+    }
+    else
+    {
+      Serial.printf("[HEARTBEAT] Court %d still available\n", pkt.courtId);
     }
   }
 }
@@ -219,19 +179,6 @@ void setup()
 {
   Serial.begin(115200);
   delay(3000); // wait for serial monitor to connect
-
-  // Init reset button pins + LEDs
-  for (int i = 0; i < NUM_COURTS; i++)
-  {
-    if (RESET_PINS[i] != -1)
-      pinMode(RESET_PINS[i], INPUT_PULLUP);
-    if (RESET_LED_PINS[i] != -1)
-    {
-      ledcSetup(i, 5000, 8);
-      ledcAttachPin(RESET_LED_PINS[i], i);
-      ledcWrite(i, 0);
-    }
-  }
 
   // Init buzzer
   pinMode(BUZZER_PIN, OUTPUT);
@@ -289,8 +236,6 @@ void setup()
 
 void loop()
 {
-  checkResetButtons();
-  updateCourtLEDs();
   updateDisplay();
   delay(20);
 }

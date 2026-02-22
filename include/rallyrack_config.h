@@ -4,50 +4,22 @@
 
 #define NUM_COURTS 8
 
-// Some ESP32 core variants (including PlatformIO's QT Py S3 package)
-// do not provide D0..D10 aliases. Provide compatibility defaults.
-#ifndef D0
-#define D0 0
-#endif
-#ifndef D1
-#define D1 1
-#endif
-#ifndef D2
-#define D2 2
-#endif
-#ifndef D3
-#define D3 3
-#endif
-#ifndef D4
-#define D4 4
-#endif
-#ifndef D5
-#define D5 5
-#endif
-#ifndef D6
-#define D6 6
-#endif
-#ifndef D7
-#define D7 7
-#endif
-#ifndef D10
-#define D10 10
-#endif
+// ============================================
+// SHARED PACKET PROTOCOL
+// ============================================
+
+struct CourtPacket
+{
+  uint8_t courtId;  // 1-based court number
+  uint8_t occupied; // 1 = in use, 0 = available
+};
 
 // ============================================
 // RECEIVER / RACK CONTROLLER CONFIG
 // ============================================
 
-// Reset buttons on the rack (one per court)
-// Set pin to -1 if not yet wired
-// QT Py ESP32-S3 available header pins: A0=17, A1=18, A2=7, A3=8, TX=6, RX=5, MOSI=35, MISO=37
-const int RESET_PINS[NUM_COURTS] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
-// LED pins inside each reset button (-1 = not wired yet)
-const int RESET_LED_PINS[NUM_COURTS] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
 // Buzzer
-#define BUZZER_PIN D10
+#define BUZZER_PIN 10
 #define BUZZER_FREQ 2000
 #define BUZZER_MS 150
 
@@ -77,11 +49,11 @@ const int RESET_LED_PINS[NUM_COURTS] = {-1, -1, -1, -1, -1, -1, -1, -1};
 // Timing
 #define LED_FLASH_MS 300
 #define SEND_TIMEOUT_MS 1000
+#define HEARTBEAT_SEC 30 // re-broadcast state every N seconds
 
 // ============================================
 // SHARED CONFIG
 // ============================================
 
-// Receiver MAC address (get this from get_mac_address utility)
-// Replace with your actual receiver MAC
+// Receiver MAC address
 uint8_t RECEIVER_MAC[] = {0xB4, 0x3A, 0x45, 0xB0, 0xD5, 0x14};
