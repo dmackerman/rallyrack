@@ -17,8 +17,8 @@ float avgWaitMs[NUM_COURTS] = {0};
 uint32_t waitSamples[NUM_COURTS] = {0};
 bool oledReady = false;
 unsigned long lastOledUpdate = 0;
-unsigned long lastPageSwitch = 0;
-uint8_t oledPage = 0;
+int8_t alertCourtId = -1;       // court showing full-screen alert (-1 = none)
+unsigned long alertUntilMs = 0; // when to return to normal display
 Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
 
 unsigned long globalAverageWaitMs()
@@ -54,54 +54,61 @@ void updateDisplay()
 
   lastOledUpdate = now;
 
-  if (now - lastPageSwitch >= OLED_PAGE_MS)
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+
+  // Full-screen alert: "Court X open!"
+  if (alertCourtId >= 0 && now < alertUntilMs)
   {
-    oledPage = (oledPage + 1) % 2;
-    lastPageSwitch = now;
+    display.setTextSize(2);
+    // First line: "Court X"
+    char line1[12];
+    snprintf(line1, sizeof(line1), "Court %d", alertCourtId);
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(line1, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((OLED_WIDTH - w) / 2, 14);
+    display.print(line1);
+    // Second line: "open!"
+    display.getTextBounds("open!", 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((OLED_WIDTH - w) / 2, 38);
+    display.print("open!");
+    display.display();
+    return;
+  }
+  else
+  {
+    alertCourtId = -1;
   }
 
+  // Normal view: courts 1-4
   unsigned long overallMs = globalAverageWaitMs();
-
-  display.clearDisplay();
   display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
   display.print("RallyRack Wait Avg");
   display.setCursor(0, 8);
   display.print("Overall: ");
   display.print(minutesFromMs(overallMs));
   display.print("m");
-  display.setCursor(82, 8);
-  display.print("P");
-  display.print(oledPage + 1);
-  display.print("/2");
 
-  int baseCourt = oledPage * 4;
-  for (int row = 0; row < 4; row++)
+  for (int i = 0; i < 4; i++)
   {
-    int court = baseCourt + row;
-    unsigned long avgMin = minutesFromMs((unsigned long)(avgWaitMs[court] + 0.5f));
+    unsigned long avgMin = minutesFromMs((unsigned long)(avgWaitMs[i] + 0.5f));
+    display.setCursor(0, 20 + (i * 11));
 
-    display.setCursor(0, 20 + (row * 11));
-
-    if (courtInUse[court] && inUseSinceMs[court] > 0)
+    if (courtInUse[i] && inUseSinceMs[i] > 0)
     {
-      // Court is in use - show in-use timer
-      unsigned long inUseMs = now - inUseSinceMs[court];
-      unsigned long inUseMin = minutesFromMs(inUseMs);
-      display.printf("C%d U:%2lum A:%2lum", court + 1, inUseMin, avgMin);
+      unsigned long inUseMin = minutesFromMs(now - inUseSinceMs[i]);
+      display.printf("C%d U:%2lum A:%2lum", i + 1, inUseMin, avgMin);
     }
-    else if (courtAvailable[court] && availableSinceMs[court] > 0)
+    else if (courtAvailable[i] && availableSinceMs[i] > 0)
     {
-      // Court is available - show available timer
-      unsigned long nowWaitMs = now - availableSinceMs[court];
-      unsigned long nowWaitMin = minutesFromMs(nowWaitMs);
-      display.printf("C%d N:%2lum A:%2lum", court + 1, nowWaitMin, avgMin);
+      unsigned long nowWaitMin = minutesFromMs(now - availableSinceMs[i]);
+      display.printf("C%d N:%2lum A:%2lum", i + 1, nowWaitMin, avgMin);
     }
     else
     {
-      // Court is idle - show average only
-      display.printf("C%d N: -- A:%2lum", court + 1, avgMin);
+      display.printf("C%d N: -- A:%2lum", i + 1, avgMin);
     }
   }
 
@@ -167,6 +174,9 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
       availableSinceMs[i] = now;
       Serial.printf("[AVAILABLE] Court %d now open\n", pkt.courtId);
       tone(BUZZER_PIN, BUZZER_FREQ, BUZZER_MS);
+      // Trigger full-screen alert
+      alertCourtId = pkt.courtId;
+      alertUntilMs = now + 5000;
     }
     else
     {
