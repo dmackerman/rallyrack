@@ -1,0 +1,176 @@
+metadata:
+  title: RallyRack Wiring Diagram
+  description: Wireless court availability system using ESP32 + ESP-NOW
+
+connectors:
+
+  ESP32_C3:
+    type: ESP32-C3 DevKitM-01
+    subtype: Transmitter (x8, Adafruit 5337)
+    pinlabels: [VIN, GND1, GPIO3, GND2, GPIO10, GND3]
+    notes: BUTTON_PIN=GPIO3  LED_PIN=GPIO10
+
+  ArcadeButton:
+    type: 30mm LED Arcade Button
+    subtype: Adafruit 3487
+    pinlabels: [SW_NO, SW_COM, LED_ANODE, LED_CATHODE]
+    notes: 200ohm resistor built into button body
+
+  LiPo:
+    type: LiPo Battery 3.7V 350mAh
+    subtype: Adafruit 2750
+    pinlabels: [VBAT, GND]
+
+  MicroLipo:
+    type: Micro-Lipo Charger (USB)
+    subtype: Adafruit 1904
+    pinlabels: [VBAT_IN, VBAT_GND, VOUT, VOUT_GND]
+
+  QTPyS3:
+    type: QT Py ESP32-S3
+    subtype: Receiver (Adafruit 5700)
+    pinlabels: [5V, GND1, D0, D1, D2, D3, D4, D5, D6, D7, D10, GND2, SDA, SCL, 3V3, GND3]
+    notes: RESET_PINs=D0-D7  BUZZER_PIN=D10  OLED via I2C
+
+  ResetBTNs:
+    type: Tactile Reset Buttons x8
+    subtype: Adafruit 367
+    pinlabels: [C1_SIG, C1_GND, C2_SIG, C2_GND, C3_SIG, C3_GND, C4_SIG, C4_GND,
+                C5_SIG, C5_GND, C6_SIG, C6_GND, C7_SIG, C7_GND, C8_SIG, C8_GND]
+    notes: Internal pull-up -- press = LOW
+
+  GND_BUS:
+    type: Common GND Bus
+    pinlabels: [G1, G2, G3, G4, G5, G6, G7, G8]
+    notes: All button GND returns tie here, then to QTPyS3 GND
+
+  Buzzer:
+    type: Piezo Buzzer PS1240
+    subtype: Adafruit 160
+    pinlabels: [SIG_POS, SIG_NEG]
+
+  OLED:
+    type: 1.3in OLED SSD1306 128x64
+    subtype: Adafruit 938 (I2C)
+    pinlabels: [VCC, GND, SDA, SCL]
+
+  PSU:
+    type: 5V 2A Switching PSU
+    subtype: Adafruit 276
+    pinlabels: [5V, GND]
+
+
+cables:
+
+  TX_SW:
+    category: bundle
+    wirecount: 2
+    colors: [YE, BK]
+    notes: Button switch wires
+
+  TX_LED:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: Button LED wires
+
+  TX_BAT:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: Battery to charger
+
+  TX_PWR:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: Charger output to ESP32
+
+  RX_PSU:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: PSU to QT Py S3
+
+  RX_RST_SIG:
+    category: bundle
+    wirecount: 8
+    colors: [YE, OG, GN, BU, VT, GY, WH, PK]
+    notes: D0-D7 to reset button signal pins
+
+  RX_RST_GND:
+    category: bundle
+    wirecount: 8
+    colors: [BK, BK, BK, BK, BK, BK, BK, BK]
+    notes: Reset button GND pins to GND bus
+
+  RX_BUZ:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: D10 to buzzer
+
+  RX_OLED_PWR:
+    category: bundle
+    wirecount: 2
+    colors: [RD, BK]
+    notes: 3V3 + GND to OLED
+
+  RX_OLED_I2C:
+    category: bundle
+    wirecount: 2
+    colors: [GN, YE]
+    notes: SDA + SCL to OLED
+
+
+connections:
+
+  - # Battery to Charger
+    - LiPo: [VBAT, GND]
+    - TX_BAT: [1, 2]
+    - MicroLipo: [VBAT_IN, VBAT_GND]
+
+  - # Charger output to ESP32 power
+    - MicroLipo: [VOUT, VOUT_GND]
+    - TX_PWR: [1, 2]
+    - ESP32_C3: [VIN, GND1]
+
+  - # GPIO3 to Arcade switch
+    - ESP32_C3: [GPIO3, GND2]
+    - TX_SW: [1, 2]
+    - ArcadeButton: [SW_NO, SW_COM]
+
+  - # GPIO10 to Arcade LED
+    - ESP32_C3: [GPIO10, GND3]
+    - TX_LED: [1, 2]
+    - ArcadeButton: [LED_ANODE, LED_CATHODE]
+
+  - # PSU to QT Py S3
+    - PSU: [5V, GND]
+    - RX_PSU: [1, 2]
+    - QTPyS3: [5V, GND1]
+
+  - # D0-D7 to Reset button signal pins
+    - QTPyS3: [D0, D1, D2, D3, D4, D5, D6, D7]
+    - RX_RST_SIG: [1, 2, 3, 4, 5, 6, 7, 8]
+    - ResetBTNs: [C1_SIG, C2_SIG, C3_SIG, C4_SIG, C5_SIG, C6_SIG, C7_SIG, C8_SIG]
+
+  - # Reset button GND pins to GND bus
+    - ResetBTNs: [C1_GND, C2_GND, C3_GND, C4_GND, C5_GND, C6_GND, C7_GND, C8_GND]
+    - RX_RST_GND: [1, 2, 3, 4, 5, 6, 7, 8]
+    - GND_BUS: [G1, G2, G3, G4, G5, G6, G7, G8]
+
+  - # D10 to Buzzer
+    - QTPyS3: [D10, GND2]
+    - RX_BUZ: [1, 2]
+    - Buzzer: [SIG_POS, SIG_NEG]
+
+  - # 3V3 + GND to OLED power
+    - QTPyS3: [3V3, GND3]
+    - RX_OLED_PWR: [1, 2]
+    - OLED: [VCC, GND]
+
+  - # SDA + SCL to OLED I2C
+    - QTPyS3: [SDA, SCL]
+    - RX_OLED_I2C: [1, 2]
+    - OLED: [SDA, SCL]

@@ -1,0 +1,21 @@
+Id	Description	Qty	Unit	Designators
+1	Connector, 1.3in OLED SSD1306 128x64, Adafruit 938 (I2C), 4 pins	1		OLED
+2	Connector, 30mm LED Arcade Button, Adafruit 3487, 4 pins	1		ArcadeButton
+3	Connector, 5V 2A Switching PSU, Adafruit 276, 2 pins	1		PSU
+4	Connector, Common GND Bus, 8 pins	1		GND_BUS
+5	Connector, ESP32-C3 DevKitM-01, Transmitter (x8, Adafruit 5337), 6 pins	1		ESP32_C3
+6	Connector, LiPo Battery 3.7V 350mAh, Adafruit 2750, 2 pins	1		LiPo
+7	Connector, Micro-Lipo Charger (USB), Adafruit 1904, 4 pins	1		MicroLipo
+8	Connector, Piezo Buzzer PS1240, Adafruit 160, 2 pins	1		Buzzer
+9	Connector, QT Py ESP32-S3, Receiver (Adafruit 5700), 16 pins	1		QTPyS3
+10	Connector, Tactile Reset Buttons x8, Adafruit 367, 16 pins	1		ResetBTNs
+11	Wire, BK	0	m	RX_BUZ, RX_OLED_PWR, RX_PSU, RX_RST_GND, TX_BAT, TX_LED, TX_PWR, TX_SW
+12	Wire, BU	0	m	RX_RST_SIG
+13	Wire, GN	0	m	RX_OLED_I2C, RX_RST_SIG
+14	Wire, GY	0	m	RX_RST_SIG
+15	Wire, OG	0	m	RX_RST_SIG
+16	Wire, PK	0	m	RX_RST_SIG
+17	Wire, RD	0	m	RX_BUZ, RX_OLED_PWR, RX_PSU, TX_BAT, TX_LED, TX_PWR
+18	Wire, VT	0	m	RX_RST_SIG
+19	Wire, WH	0	m	RX_RST_SIG
+20	Wire, YE	0	m	RX_OLED_I2C, RX_RST_SIG, TX_SW

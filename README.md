@@ -190,27 +190,176 @@ Code locations:
 2. Double-check power:
    - ESP32 boards can stay on USB during development
 
-### 2.1) Breadboard prototyping (no-solder first pass)
+### 2.1) Electronics primer (read this first if you're new)
 
-Use this to validate code and radio links before permanent wiring.
+Before wiring anything, here are the concepts you need:
 
-1. Start with **one transmitter** + **one receiver** only
-2. Use a breadboard and Dupont jumper wires
-3. Prototype transmitter wiring:
-   - ESP32-C3 `GPIO3` → momentary button leg A
-   - ESP32-C3 `GND` → button leg B
-   - ESP32-C3 `GPIO10` → LED anode (+)
-   - ESP32-C3 `GND` → LED cathode (-)
-4. Prototype receiver wiring:
-   - QT Py S3 `D0` → reset button leg A, leg B → `GND`
-   - QT Py S3 `D10` → buzzer `+`, buzzer `-` → `GND`
-   - OLED: `3V3`→`VCC`, `GND`→`GND`, `SDA`→`SDA`, `SCL`→`SCL`
-5. Keep ESP32 boards on USB power while prototyping
-6. Flash and test with `COURT_ID=1` first, then scale to additional courts
+**What is a breadboard?**
+A breadboard is a plastic block with a grid of holes. Metal clips inside connect the holes in rows, so you can connect components without soldering. The key rules:
+- The two long rails running down each side (usually marked `+` and `−`, or red/blue) are **power rails** — every hole in the same rail is connected. Use these for 3.3V/5V and GND.
+- The short rows in the middle (lettered A–E on one side, F–J on the other) are **tie points** — every hole in the same row (e.g. A1 through E1) is connected across that row.
+- The center gap separates the two halves; a chip or ESP32 board straddles the gap so its left and right pins fall into separate rows.
 
-Prototype tips:
-- Breadboard rail labels can be inconsistent; verify continuity with a multimeter
-- Make sure all grounds are tied together
+**What are jumper wires?**
+Short wires with push-in connectors (Dupont wires). Male-to-male wires plug into breadboard holes. Match wire colors to your connections to avoid confusion: red = power, black = GND, any other color = signal.
+
+**What is GND?**
+GND (ground) is the common reference point for all voltages. Every component must share the same GND. If you power the ESP32 via USB and the OLED from the ESP32's 3V3 pin, their GNDs must be connected — otherwise the signals have no reference and nothing works.
+
+**Active-low buttons with pull-ups**
+The reset buttons use the ESP32's internal **pull-up resistor**. This means:
+- When the button is **not pressed**, the pin reads HIGH (3.3V) through the pull-up.
+- When the button **is pressed**, it connects the pin directly to GND, pulling it LOW.
+- The firmware detects a press by looking for a LOW reading. You do not need an external resistor.
+
+**I2C — what is it?**
+I2C (Inter-Integrated Circuit) is a two-wire communication protocol. It uses:
+- **SDA** — Serial Data
+- **SCL** — Serial Clock
+
+Only two wires carry data between the QT Py S3 and the OLED display.
+
+---
+
+### 2.2) Breadboard prototyping — step by step
+
+Start with **one transmitter + one receiver** only. Do not wire all 8 courts yet — get one working first.
+
+#### What you need
+
+- 1× ESP32-C3 DevKitM-01 (transmitter)
+- 1× QT Py ESP32-S3 (receiver)
+- 1× 30mm LED Arcade Button (Adafruit 3487)
+- 1× small momentary tactile button (reset, Adafruit 367)
+- 1× Piezo buzzer (Adafruit 160)
+- 1× 1.3" OLED display (Adafruit 938)
+- 2× full-size breadboards (830 tie points)
+- Dupont male-to-male jumper wires (assorted colors)
+- 2× USB-C cables (data-capable, not charge-only)
+- 2× computers or USB hubs to power both boards simultaneously
+
+---
+
+#### Part A: Transmitter breadboard (ESP32-C3 + Arcade Button)
+
+The transmitter detects a button press and flashes an LED.
+
+**Step 1 — Seat the ESP32-C3 on the breadboard**
+
+Place the ESP32-C3 DevKitM-01 across the center gap of your breadboard so:
+- The left row of pins falls in columns A–E
+- The right row of pins falls in columns F–J
+- Leave a few rows of empty space above and below for wires
+
+The USB-C port should face off the end of the board.
+
+**Step 2 — Identify the pins you need**
+
+Look at the ESP32-C3 board. The pin labels are silkscreened on the PCB (tiny text next to each pin). You need:
+- `GPIO3` — button signal input
+- `GPIO10` — LED output
+- Any `GND` pin — there are several, use whichever is closest
+
+> Tip: Adafruit's product page for #5337 has a full pinout diagram — look it up on your phone while you work.
+
+**Step 3 — Wire the button switch (NO contact)**
+
+The arcade button has **four terminals** underneath: two pairs. One pair is the **switch** (NO = Normally Open), the other is the **LED**.
+
+1. Identify the two switch terminals (they are usually labeled or come with a wiring guide in the box). When in doubt, test continuity with a multimeter across each pair — the pair that beeps only when the button is pressed is the switch.
+2. Push a **yellow** jumper wire from the `GPIO3` row on the breadboard to one switch terminal.
+3. Push a **black** jumper wire from any `GND` pin row on the breadboard to the other switch terminal.
+
+When pressed, `GPIO3` will be pulled to GND → firmware detects LOW → court is marked available.
+
+**Step 4 — Wire the button LED**
+
+1. Identify the two LED terminals on the arcade button (the other pair of contacts).
+2. Push a **red** jumper wire from the `GPIO10` row on the breadboard to the LED **anode (+)** terminal.
+3. Push a **black** jumper wire from any `GND` pin row on the breadboard to the LED **cathode (−)** terminal.
+
+> The 200Ω resistor is already built into the button body — no external resistor needed.
+
+**Step 5 — Power the transmitter**
+
+Plug the ESP32-C3 into a USB-C port. The onboard power LED should illuminate. You do not need a battery for breadboard testing — USB powers everything.
+
+---
+
+#### Part B: Receiver breadboard (QT Py S3 + Tactile Reset Button + Buzzer + OLED)
+
+**Step 6 — Seat the QT Py S3 on the second breadboard**
+
+The QT Py S3 is a small board. Seat it at one end of the breadboard, straddling the center gap, with the USB-C port facing off the edge.
+
+**Step 7 — Connect the power rails**
+
+The QT Py exposes a `3V3` pin and a `GND` pin. Connect these to the breadboard's power rails so other components can tap into them easily:
+1. **Red** wire from QT Py `3V3` pin → `+` rail on breadboard
+2. **Black** wire from QT Py `GND` pin → `−` rail on breadboard
+
+From now on you can reach 3.3V power by plugging into the `+` rail, and ground by plugging into the `−` rail.
+
+**Step 8 — Wire the first tactile reset button (Court 1)**
+
+Tactile push buttons have 4 legs arranged in two pairs. The legs on the **same short side** are connected internally — those are your two contacts.
+
+1. Seat the tactile button across the center gap of the breadboard (legs straddle the gap).
+2. **Yellow** wire from QT Py `D0` pin → one leg of the button (short-side pair A).
+3. **Black** wire from the `−` rail (GND) → the other leg of the button (short-side pair B).
+
+When pressed: `D0` is pulled to GND → firmware detects LOW → Court 1 is reset.
+
+> To add more courts later, repeat this for `D1` through `D7` with additional buttons.
+
+**Step 9 — Wire the buzzer**
+
+The piezo buzzer has two pins, often marked `+` and `−` (or the positive leg is longer, like an LED).
+
+1. **Red** wire from QT Py `D10` → buzzer `+` (signal / positive leg)
+2. **Black** wire from `−` rail (GND) → buzzer `−` (negative leg)
+
+**Step 10 — Wire the OLED display**
+
+The OLED display has 4 pins: `VCC`, `GND`, `SDA`, `SCL`. The Adafruit 938 comes with a STEMMA QT connector or standard 0.1" header pins.
+
+1. **Red** wire from `+` rail (3.3V) → OLED `VCC`
+2. **Black** wire from `−` rail (GND) → OLED `GND`
+3. **Green** wire from QT Py `SDA` → OLED `SDA`
+4. **Yellow** wire from QT Py `SCL` → OLED `SCL`
+
+> The QT Py S3 also has a **STEMMA QT** JST connector on the board edge. If your OLED has a STEMMA QT cable, you can plug it straight in — no breadboard wiring needed for the OLED at all.
+
+**Step 11 — Power the receiver**
+
+Plug the QT Py S3 into a USB-C port. Check:
+- The OLED lights up (may show garbage until firmware is flashed — that's fine)
+- The board's power LED illuminates
+- No components feel warm or hot (if anything is hot, immediately unplug and check wiring)
+
+---
+
+#### Part C: Sanity checks before flashing
+
+Before loading any firmware, do a quick visual check:
+
+- [ ] Every GND wire connects back to the `−` rail or a board GND pin
+- [ ] No bare wire legs are touching each other (short circuits)
+- [ ] OLED VCC goes to 3.3V, **not** 5V — the display is 3.3V logic
+- [ ] Buzzer and button have correct polarity (+/−)
+- [ ] Both boards are powered via USB
+
+---
+
+#### Common beginner mistakes to avoid
+
+| Mistake | What happens | Fix |
+|---|---|---|
+| GND not shared between components | Signal pins float; nothing works | Run a black wire between all GND pins and the `−` rail |
+| OLED powered from 5V instead of 3.3V | Display may be damaged | Use the `3V3` pin only |
+| Wrong button terminals (LED vs switch) | Button presses don't register, or LED is always on | Test with a multimeter in continuity mode |
+| Charge-only USB cable | Board doesn't enumerate; firmware upload fails | Use a data-capable cable |
+| Jumper wire not fully seated | Intermittent connection | Push firmly until the connector clicks into the breadboard |
 
 ### 3) Configure receiver and transmitters
 
