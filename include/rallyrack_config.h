@@ -18,11 +18,6 @@ struct CourtPacket
 // RECEIVER / RACK CONTROLLER CONFIG
 // ============================================
 
-// Buzzer
-#define BUZZER_PIN 10
-#define BUZZER_FREQ 2000
-#define BUZZER_MS 150
-
 // OLED display (I2C)
 // QT Py ESP32-S3 SDA/SCL header pins (same as STEMMA QT)
 #define OLED_SDA 41
