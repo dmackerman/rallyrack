@@ -9,6 +9,7 @@
 #include <Adafruit_SSD1306.h>
 #include "config.h"
 #include <math.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
 
 bool courtAvailable[NUM_COURTS] = {true, true, true, true, true, true, true, true};
 bool courtInUse[NUM_COURTS] = {false};
@@ -16,6 +17,7 @@ unsigned long availableSinceMs[NUM_COURTS] = {0};
 unsigned long inUseSinceMs[NUM_COURTS] = {0};
 float avgWaitMs[NUM_COURTS] = {0};
 uint32_t waitSamples[NUM_COURTS] = {0};
+unsigned long lastHeardMs[NUM_COURTS] = {0}; // last packet time per court (fault detection)
 bool oledReady = false;
 unsigned long lastOledUpdate = 0;
 int8_t alertCourtId = -1;                // court showing full-screen alert (-1 = none)
@@ -45,8 +47,19 @@ unsigned long minutesFromMs(unsigned long valueMs)
   return (valueMs + 30000UL) / 60000UL;
 }
 
+void fmtMMSS(char *buf, size_t sz, unsigned long ms)
+{
+  unsigned long totalSec = ms / 1000;
+  unsigned long m = totalSec / 60;
+  unsigned long s = totalSec % 60;
+  if (m > 99)
+    m = 99; // cap at 99:59
+  snprintf(buf, sz, "%02lu:%02lu", m, s);
+}
+
 void animateGameStarted(uint8_t courtNum)
 {
+  display.setFont(NULL); // ensure default font throughout animation
   char courtLine[12];
   snprintf(courtLine, sizeof(courtLine), "Court %d", courtNum);
 
@@ -121,6 +134,7 @@ void animateGameStarted(uint8_t courtNum)
   }
 
   display.invertDisplay(false);
+  display.setFont(NULL);
 }
 
 void updateDisplay()
@@ -140,19 +154,22 @@ void updateDisplay()
   // Full-screen alert: "Court X open!"
   if (alertCourtId >= 0 && now < alertUntilMs)
   {
-    display.setTextSize(2);
-    // First line: "Court X"
-    char line1[12];
-    snprintf(line1, sizeof(line1), "Court %d", alertCourtId);
     int16_t x1, y1;
     uint16_t w, h;
+    char line1[12];
+    snprintf(line1, sizeof(line1), "Court %d", alertCourtId);
+    // "Court X" — large, centered, baseline at y=26
+    display.setFont(&FreeMonoBold9pt7b);
+    display.setTextSize(2);
     display.getTextBounds(line1, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((OLED_WIDTH - w) / 2, 14);
+    display.setCursor((OLED_WIDTH - w) / 2 - x1, 26);
     display.print(line1);
-    // Second line: "open!"
+    // "open!" — smaller, centered, baseline at y=54
+    display.setTextSize(1);
     display.getTextBounds("open!", 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((OLED_WIDTH - w) / 2, 38);
+    display.setCursor((OLED_WIDTH - w) / 2 - x1, 54);
     display.print("open!");
+    display.setFont(NULL);
     display.display();
     return;
   }
@@ -200,30 +217,31 @@ void updateDisplay()
 
     char numStr[4];
     char statusStr[8];
-    char nowStr[5];
-    char avgStr[5];
+    char nowStr[7]; // MM:SS + null
+    char avgStr[6]; // "99m" + null
 
-    snprintf(numStr, sizeof(numStr), "#%d", i + 1);
+    snprintf(numStr, sizeof(numStr), "%d", i + 1);
     snprintf(avgStr, sizeof(avgStr), "%2lum", avgMin);
 
     if (courtInUse[i] && inUseSinceMs[i] > 0)
     {
-      unsigned long inUseMin = minutesFromMs(now - inUseSinceMs[i]);
-      snprintf(statusStr, sizeof(statusStr), "Started");
-      snprintf(nowStr, sizeof(nowStr), "%2lum", inUseMin);
+      bool fault = (lastHeardMs[i] > 0) &&
+                   (now - lastHeardMs[i] > FAULT_TIMEOUT_MS);
+      if (fault)
+      {
+        snprintf(statusStr, sizeof(statusStr), "Fault");
+        snprintf(nowStr, sizeof(nowStr), "  ??");
+      }
+      else
+      {
+        snprintf(statusStr, sizeof(statusStr), "Started");
+        fmtMMSS(nowStr, sizeof(nowStr), now - inUseSinceMs[i]);
+      }
     }
     else if (courtAvailable[i])
     {
       snprintf(statusStr, sizeof(statusStr), "Open");
-      if (availableSinceMs[i] > 0)
-      {
-        unsigned long nowWaitMin = minutesFromMs(now - availableSinceMs[i]);
-        snprintf(nowStr, sizeof(nowStr), "%2lum", nowWaitMin);
-      }
-      else
-      {
-        snprintf(nowStr, sizeof(nowStr), " --");
-      }
+      snprintf(nowStr, sizeof(nowStr), "  --");
     }
     else
     {
@@ -260,27 +278,14 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 
   int i = pkt.courtId - 1;
   unsigned long now = millis();
+  lastHeardMs[i] = now; // stamp on every packet — used for fault detection
 
   if (pkt.occupied)
   {
     if (!courtInUse[i])
     {
       // Transition: available → occupied
-      // Record how long the court waited before being claimed
-      if (courtAvailable[i] && availableSinceMs[i] > 0)
-      {
-        unsigned long waitMs = now - availableSinceMs[i];
-        waitSamples[i]++;
-        avgWaitMs[i] += (waitMs - avgWaitMs[i]) / waitSamples[i];
-        Serial.printf("[OCCUPIED] Court %d claimed, wait=%lum avg=%lum\n",
-                      pkt.courtId,
-                      minutesFromMs(waitMs),
-                      minutesFromMs((unsigned long)(avgWaitMs[i] + 0.5f)));
-      }
-      else
-      {
-        Serial.printf("[OCCUPIED] Court %d now in use\n", pkt.courtId);
-      }
+      Serial.printf("[OCCUPIED] Court %d now in use\n", pkt.courtId);
       courtAvailable[i] = false;
       availableSinceMs[i] = 0;
       courtInUse[i] = true;
@@ -297,11 +302,25 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
     if (!courtAvailable[i])
     {
       // Transition: occupied → available
+      // Record how long the game lasted and update rolling average
+      if (inUseSinceMs[i] > 0)
+      {
+        unsigned long gameMs = now - inUseSinceMs[i];
+        waitSamples[i]++;
+        avgWaitMs[i] += (gameMs - avgWaitMs[i]) / waitSamples[i];
+        Serial.printf("[AVAILABLE] Court %d open after %lum, avg game=%lum\n",
+                      pkt.courtId,
+                      minutesFromMs(gameMs),
+                      minutesFromMs((unsigned long)(avgWaitMs[i] + 0.5f)));
+      }
+      else
+      {
+        Serial.printf("[AVAILABLE] Court %d now open\n", pkt.courtId);
+      }
       courtInUse[i] = false;
       inUseSinceMs[i] = 0;
       courtAvailable[i] = true;
       availableSinceMs[i] = now;
-      Serial.printf("[AVAILABLE] Court %d now open\n", pkt.courtId);
       // Trigger full-screen alert
       alertCourtId = pkt.courtId;
       alertUntilMs = now + 5000;
@@ -349,13 +368,26 @@ void setup()
     display.ssd1306_command(SSD1306_DISPLAYON);
     display.dim(false);
     display.clearDisplay();
-    display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
+    // "RallyRack" in FreeMonoBold9pt7b, centered, baseline y=22
+    display.setFont(&FreeMonoBold9pt7b);
+    display.setTextSize(1);
+    {
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds("RallyRack", 0, 0, &x1, &y1, &w, &h);
+      display.setCursor((OLED_WIDTH - w) / 2 - x1, 22);
+    }
     display.print("RallyRack");
-    display.setCursor(1, 0);
-    display.print("RallyRack");
-    display.setCursor(0, 12);
+    display.setFont(NULL);
+    display.setTextSize(1);
+    // "Wait time tracker" default font, centered below
+    {
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds("Wait time tracker", 0, 0, &x1, &y1, &w, &h);
+      display.setCursor((OLED_WIDTH - w) / 2, 38);
+    }
     display.print("Wait time tracker");
     display.display();
     Serial.println("OLED splash drawn");
@@ -368,6 +400,11 @@ void setup()
   Serial.println("Rack controller ready");
   Serial.print("MAC: ");
   Serial.println(WiFi.macAddress());
+
+  // Seed open timestamps so "Now" shows time-since-boot for default-open courts
+  unsigned long bootMs = millis();
+  for (int i = 0; i < NUM_COURTS; i++)
+    availableSinceMs[i] = bootMs;
 }
 
 void loop()

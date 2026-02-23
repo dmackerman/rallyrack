@@ -13,6 +13,7 @@ inline void seedPreviewState(SystemState &state)
   // Court 1: in use for 4 min
   state.courts[0].inUse = true;
   state.courts[0].inUseSinceMs = kPreviewNowMs - (4UL * 60UL * 1000UL);
+  state.courts[0].lastHeardMs = kPreviewNowMs - 5000; // last heard 5s ago (healthy)
   state.courts[0].avgWaitMs = 2UL * 60UL * 1000UL;
   state.courts[0].waitSamples = 3;
 
@@ -39,6 +40,7 @@ inline void seedPreviewState(SystemState &state)
   // Court 6: in use for 12 min
   state.courts[5].inUse = true;
   state.courts[5].inUseSinceMs = kPreviewNowMs - (12UL * 60UL * 1000UL);
+  state.courts[5].lastHeardMs = kPreviewNowMs - 5000; // last heard 5s ago (healthy)
   state.courts[5].avgWaitMs = 6UL * 60UL * 1000UL;
   state.courts[5].waitSamples = 5;
 

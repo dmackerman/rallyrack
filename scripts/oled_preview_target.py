@@ -1,6 +1,8 @@
 import os
 import subprocess
 
+Import("env")
+
 
 def run_program(source, target, env):
     program_path = env.subst("$PROGPATH")

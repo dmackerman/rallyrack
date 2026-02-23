@@ -21,6 +21,20 @@ inline unsigned long minutesFromMs(unsigned long valueMs)
   return (valueMs + 30000UL) / 60000UL;
 }
 
+#ifndef FAULT_TIMEOUT_MS
+#define FAULT_TIMEOUT_MS 45000
+#endif
+
+inline void fmtMMSS(char *buf, size_t sz, unsigned long ms)
+{
+  unsigned long totalSec = ms / 1000;
+  unsigned long m = totalSec / 60;
+  unsigned long s = totalSec % 60;
+  if (m > 99)
+    m = 99;
+  snprintf(buf, sz, "%02lu:%02lu", m, s);
+}
+
 // ============================================
 // COURT STATE & STATISTICS
 // ============================================
@@ -33,6 +47,7 @@ struct CourtState
   unsigned long inUseSinceMs;
   float avgWaitMs;
   uint32_t waitSamples;
+  unsigned long lastHeardMs;
   unsigned long lastResetPressMs;
 };
 
@@ -52,6 +67,7 @@ inline void initSystemState(SystemState &state)
     state.courts[i].inUseSinceMs = 0;
     state.courts[i].avgWaitMs = 0.0f;
     state.courts[i].waitSamples = 0;
+    state.courts[i].lastHeardMs = 0;
     state.courts[i].lastResetPressMs = 0;
   }
 }
@@ -101,33 +117,46 @@ inline void simulateCourtAvailable(SystemState &state, int courtId, unsigned lon
   }
 }
 
-// Simulate pressing reset button (court taken off rack)
-inline void simulateResetButtonPress(SystemState &state, int courtId, unsigned long now, uint32_t debounceMs)
+// Simulate court becoming occupied (button press, game starts)
+inline void simulateCourtOccupied(SystemState &state, int courtId, unsigned long now, uint32_t debounceMs = 0)
 {
   if (courtId < 1 || courtId > NUM_COURTS)
     return;
 
   int idx = courtId - 1;
 
-  // Check debounce
-  if (now - state.courts[idx].lastResetPressMs <= debounceMs)
+  if (debounceMs > 0 && now - state.courts[idx].lastResetPressMs <= debounceMs)
     return;
 
-  // If court was available, record wait time
-  if (state.courts[idx].available && state.courts[idx].availableSinceMs > 0)
-  {
-    unsigned long waitMs = now - state.courts[idx].availableSinceMs;
-    state.courts[idx].waitSamples++;
-    state.courts[idx].avgWaitMs += (waitMs - state.courts[idx].avgWaitMs) / state.courts[idx].waitSamples;
-  }
-
-  // Start in-use timer
   state.courts[idx].available = false;
   state.courts[idx].availableSinceMs = 0;
   state.courts[idx].inUse = true;
   state.courts[idx].inUseSinceMs = now;
-
+  state.courts[idx].lastHeardMs = now;
   state.courts[idx].lastResetPressMs = now;
+}
+
+// Simulate court becoming available (game ends, button pressed when occupied)
+inline void simulateCourtFreed(SystemState &state, int courtId, unsigned long now)
+{
+  if (courtId < 1 || courtId > NUM_COURTS)
+    return;
+
+  int idx = courtId - 1;
+
+  // Record game duration into rolling average
+  if (state.courts[idx].inUse && state.courts[idx].inUseSinceMs > 0)
+  {
+    unsigned long gameMs = now - state.courts[idx].inUseSinceMs;
+    state.courts[idx].waitSamples++;
+    state.courts[idx].avgWaitMs += (gameMs - state.courts[idx].avgWaitMs) / state.courts[idx].waitSamples;
+  }
+
+  state.courts[idx].inUse = false;
+  state.courts[idx].inUseSinceMs = 0;
+  state.courts[idx].available = true;
+  state.courts[idx].availableSinceMs = now;
+  state.courts[idx].lastHeardMs = now;
 }
 
 // ============================================
@@ -144,25 +173,41 @@ public:
   {
     unsigned long avgMin = minutesFromMs((unsigned long)(court.avgWaitMs + 0.5f));
 
+    char numStr[4];
+    char statusStr[8];
+    char nowStr[7];
+    char avgStr[6];
+
+    snprintf(numStr, sizeof(numStr), "%d", courtNum);
+    snprintf(avgStr, sizeof(avgStr), "%lum", avgMin);
+
     if (court.inUse && court.inUseSinceMs > 0)
     {
-      // Court is in use
-      unsigned long inUseMs = now - court.inUseSinceMs;
-      unsigned long inUseMin = minutesFromMs(inUseMs);
-      snprintf(buffer, sizeof(buffer), "C%d U:%2lum A:%2lum", courtNum, inUseMin, avgMin);
+      bool fault = (court.lastHeardMs > 0) &&
+                   (now - court.lastHeardMs > FAULT_TIMEOUT_MS);
+      if (fault)
+      {
+        snprintf(statusStr, sizeof(statusStr), "Fault");
+        snprintf(nowStr, sizeof(nowStr), "??");
+      }
+      else
+      {
+        snprintf(statusStr, sizeof(statusStr), "Started");
+        fmtMMSS(nowStr, sizeof(nowStr), now - court.inUseSinceMs);
+      }
     }
-    else if (court.available && court.availableSinceMs > 0)
+    else if (court.available)
     {
-      // Court is available
-      unsigned long nowWaitMs = now - court.availableSinceMs;
-      unsigned long nowWaitMin = minutesFromMs(nowWaitMs);
-      snprintf(buffer, sizeof(buffer), "C%d N:%2lum A:%2lum", courtNum, nowWaitMin, avgMin);
+      snprintf(statusStr, sizeof(statusStr), "Open");
+      snprintf(nowStr, sizeof(nowStr), "--");
     }
     else
     {
-      // Court is idle
-      snprintf(buffer, sizeof(buffer), "C%d N: -- A:%2lum", courtNum, avgMin);
+      snprintf(statusStr, sizeof(statusStr), "---");
+      snprintf(nowStr, sizeof(nowStr), "--");
     }
+
+    snprintf(buffer, sizeof(buffer), "%s %s %s %s", numStr, statusStr, nowStr, avgStr);
   }
 
   const char *str() const { return buffer; }

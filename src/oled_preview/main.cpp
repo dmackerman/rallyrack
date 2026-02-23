@@ -12,10 +12,12 @@ namespace
   void printPage(const SystemState &state, int page)
   {
     unsigned long overallMs = globalAverageWaitMs(state);
-    unsigned long overallMin = minutesFromMs(overallMs);
 
-    std::printf("RallyRack Wait Avg\n");
-    std::printf("Overall: %lum  P%d/2\n", overallMin, page + 1);
+    // Title row
+    std::printf("RallyRack                Avg:%lum\n", minutesFromMs(overallMs));
+    // Column headers
+    std::printf("#  Status      Now    Avg\n");
+    std::printf("------------------------------\n");
 
     int baseCourt = page * 4;
     for (int row = 0; row < 4; row++)

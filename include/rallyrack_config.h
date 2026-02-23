@@ -44,7 +44,8 @@ struct CourtPacket
 // Timing
 #define LED_FLASH_MS 300
 #define SEND_TIMEOUT_MS 1000
-#define HEARTBEAT_SEC 30 // re-broadcast state every N seconds
+#define HEARTBEAT_SEC 15       // re-broadcast state every N seconds
+#define FAULT_TIMEOUT_MS 45000 // 3× heartbeat — court goes Fault if no packet received
 
 // ============================================
 // SHARED CONFIG
