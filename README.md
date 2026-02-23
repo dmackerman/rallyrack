@@ -24,12 +24,10 @@ Full 8-court setup, all from [adafruit.com](https://www.adafruit.com).
 | Adafruit QT Py S3 w/ 2MB PSRAM (receiver) | [5700](https://www.adafruit.com/product/5700) | 1 | $12.50 | $12.50 |
 | ESP32-C3 DevKitM-01 (transmitters) | [5337](https://www.adafruit.com/product/5337) | 8 | $9.95 | $79.60 |
 | Monochrome 1.3" 128x64 OLED - STEMMA QT | [938](https://www.adafruit.com/product/938) | 1 | $19.95 | $19.95 |
-| Tactile Button switch 6mm (20-pack, for resets) | [367](https://www.adafruit.com/product/367) | 1 | $2.50 | $2.50 |
-| Piezo Buzzer PS1240 | [160](https://www.adafruit.com/product/160) | 1 | $1.50 | $1.50 |
 | 5V 2A switching power supply - UL Listed | [276](https://www.adafruit.com/product/276) | 1 | $7.95 | $7.95 |
 | 470Ω resistors 1/4W (25-pack) | [2781](https://www.adafruit.com/product/2781) | 1 | $0.75 | $0.75 |
 | Premium M/M Jumper Wires 20×6" | [1957](https://www.adafruit.com/product/1957) | 2 | $1.95 | $3.90 |
-| **Core subtotal** | | | | **$153.60** |
+| **Core subtotal** | | | | **$149.15** |
 
 ### Power + Portable Button Parts
 
@@ -48,7 +46,7 @@ Full 8-court setup, all from [adafruit.com](https://www.adafruit.com).
 
 ### Budget Summary
 
-- **All electronics (core + portable + prototyping):** about **$277**
+- **All electronics (core + portable + prototyping):** about **$272**
 - You will also need basic tools (soldering iron, solder, wire stripper, multimeter, heat-shrink) which Adafruit does not carry — source from a hardware store or Mouser/DigiKey
 
 ## Hardware
@@ -64,9 +62,7 @@ Full 8-court setup, all from [adafruit.com](https://www.adafruit.com).
 
 ### Rack Controller (×1)
 - Adafruit QT Py S3 w/ 2MB PSRAM ([Adafruit 5700](https://www.adafruit.com/product/5700))
-- 8× momentary push buttons (reset)
-- Passive buzzer ([Adafruit 160](https://www.adafruit.com/product/160))
-- 1.3" I2C OLED display (SSD1306, 128x64) ([Adafruit 938](https://www.adafruit.com/product/938))
+- 1.3" I2C OLED display (SSD1306, 128x64) via STEMMA QT ([Adafruit 938](https://www.adafruit.com/product/938))
 - 5V power supply ([Adafruit 276](https://www.adafruit.com/product/276))
 
 ## Wiring
@@ -108,57 +104,37 @@ GND ------| GND                 |
 | GND     | Arcade LED (-) | Built-in 200Ω resistor in button |
 
 ### Receiver (rack)
-- Reset buttons → D0..D7 to GND (internal pullups used)
-- Buzzer → D10
-- OLED (SSD1306 I2C) → SDA/SCL + power
+- OLED (SSD1306 I2C) → STEMMA QT connector (GPIO 41 SDA, GPIO 40 SCL)
+- No reset buttons or buzzer — courts are controlled entirely by the transmitter buttons
 
 ```text
-Receiver Rack (QT Py S3 + Reset Buttons + Buzzer + OLED)
+Receiver Rack (QT Py S3 + OLED)
 
                                  +----------------------+
                                  |   QT Py ESP32-S3     |
                                  |                      |
-D10 ------------------| BUZZER_PIN           |
-D0  ------------------| RESET Court 1        |
-D1  ------------------| RESET Court 2        |
-D2  ------------------| RESET Court 3        |
-D3  ------------------| RESET Court 4        |
-D4  ------------------| RESET Court 5        |
-D5  ------------------| RESET Court 6        |
-D6  ------------------| RESET Court 7        |
-D7  ------------------| RESET Court 8        |
-GND ------------------| GND                  |
+                                 |  STEMMA QT port  ----+----> OLED (SSD1306)
+                                 |  (GPIO 41 SDA,       |
+                                 |   GPIO 40 SCL)       |
+                                 |                      |
                                  +----------------------+
 
-Reset buttons (one per court):
-   D0..D7 --------[button]---- GND
-   (uses internal pull-up, so press = LOW)
-
-Buzzer:
-   D10 -----------------------> Buzzer signal (+)
-   GND -----------------------> Buzzer (-)
-
-OLED (SSD1306 I2C):
+OLED (1.3" SSD1306, I2C address 0x3D):
+   QT Py STEMMA QT --------> OLED STEMMA QT cable (plug-and-play)
+     OR
    QT Py 3V3 -----------------> OLED VCC
    QT Py GND -----------------> OLED GND
-   QT Py SDA -----------------> OLED SDA
-   QT Py SCL -----------------> OLED SCL
+   GPIO 41 (SDA) -------------> OLED SDA
+   GPIO 40 (SCL) -------------> OLED SCL
 ```
 
 | QT Py S3 Pin | Connects To | Notes |
 |---|---|---|
-| D10 | Buzzer signal (+) | `BUZZER_PIN` |
-| D0  | Reset button Court 1 | To GND when pressed |
-| D1  | Reset button Court 2 | To GND when pressed |
-| D2  | Reset button Court 3 | To GND when pressed |
-| D3  | Reset button Court 4 | To GND when pressed |
-| D4  | Reset button Court 5 | To GND when pressed |
-| D5  | Reset button Court 6 | To GND when pressed |
-| D6  | Reset button Court 7 | To GND when pressed |
-| D7  | Reset button Court 8 | To GND when pressed |
-| SDA | OLED SDA | I2C data line |
-| SCL | OLED SCL | I2C clock line |
-| GND | Button return + buzzer (-) | Common ground required |
+| STEMMA QT | OLED STEMMA QT cable | Easiest — plug-and-play |
+| GPIO 41 | OLED SDA | If wiring manually |
+| GPIO 40 | OLED SCL | If wiring manually |
+| 3V3 | OLED VCC | If wiring manually |
+| GND | OLED GND | If wiring manually |
 
 ## Getting Started
 
@@ -207,7 +183,7 @@ Short wires with push-in connectors (Dupont wires). Male-to-male wires plug into
 GND (ground) is the common reference point for all voltages. Every component must share the same GND. If you power the ESP32 via USB and the OLED from the ESP32's 3V3 pin, their GNDs must be connected — otherwise the signals have no reference and nothing works.
 
 **Active-low buttons with pull-ups**
-The reset buttons use the ESP32's internal **pull-up resistor**. This means:
+The transmitter arcade button uses the ESP32-C3's internal **pull-up resistor**. This means:
 - When the button is **not pressed**, the pin reads HIGH (3.3V) through the pull-up.
 - When the button **is pressed**, it connects the pin directly to GND, pulling it LOW.
 - The firmware detects a press by looking for a LOW reading. You do not need an external resistor.
@@ -230,9 +206,8 @@ Start with **one transmitter + one receiver** only. Do not wire all 8 courts yet
 - 1× ESP32-C3 DevKitM-01 (transmitter)
 - 1× QT Py ESP32-S3 (receiver)
 - 1× 30mm LED Arcade Button (Adafruit 3487)
-- 1× small momentary tactile button (reset, Adafruit 367)
-- 1× Piezo buzzer (Adafruit 160)
 - 1× 1.3" OLED display (Adafruit 938)
+- 1× STEMMA QT cable (usually included with Adafruit 938)
 - 2× full-size breadboards (830 tie points)
 - Dupont male-to-male jumper wires (assorted colors)
 - 2× USB-C cables (data-capable, not charge-only)
@@ -286,51 +261,25 @@ Plug the ESP32-C3 into a USB-C port. The onboard power LED should illuminate. Yo
 
 ---
 
-#### Part B: Receiver breadboard (QT Py S3 + Tactile Reset Button + Buzzer + OLED)
+#### Part B: Receiver breadboard (QT Py S3 + OLED)
 
 **Step 6 — Seat the QT Py S3 on the second breadboard**
 
 The QT Py S3 is a small board. Seat it at one end of the breadboard, straddling the center gap, with the USB-C port facing off the edge.
 
-**Step 7 — Connect the power rails**
+**Step 7 — Wire the OLED display**
 
-The QT Py exposes a `3V3` pin and a `GND` pin. Connect these to the breadboard's power rails so other components can tap into them easily:
-1. **Red** wire from QT Py `3V3` pin → `+` rail on breadboard
-2. **Black** wire from QT Py `GND` pin → `−` rail on breadboard
+The Adafruit 938 OLED has a **STEMMA QT** JST connector, and so does the QT Py S3. This is the easiest possible connection:
 
-From now on you can reach 3.3V power by plugging into the `+` rail, and ground by plugging into the `−` rail.
+1. Plug a STEMMA QT cable from the QT Py S3's STEMMA QT port directly into the OLED.
 
-**Step 8 — Wire the first tactile reset button (Court 1)**
+That's it. No breadboard wiring needed. Power, ground, SDA, and SCL are all handled by the cable.
 
-Tactile push buttons have 4 legs arranged in two pairs. The legs on the **same short side** are connected internally — those are your two contacts.
+> If you need to wire manually instead: connect GPIO 41 → SDA, GPIO 40 → SCL, 3V3 → VCC, GND → GND.
 
-1. Seat the tactile button across the center gap of the breadboard (legs straddle the gap).
-2. **Yellow** wire from QT Py `D0` pin → one leg of the button (short-side pair A).
-3. **Black** wire from the `−` rail (GND) → the other leg of the button (short-side pair B).
+> The OLED I2C address for the Adafruit 938 is **0x3D** (not the common 0x3C).
 
-When pressed: `D0` is pulled to GND → firmware detects LOW → Court 1 is reset.
-
-> To add more courts later, repeat this for `D1` through `D7` with additional buttons.
-
-**Step 9 — Wire the buzzer**
-
-The piezo buzzer has two pins, often marked `+` and `−` (or the positive leg is longer, like an LED).
-
-1. **Red** wire from QT Py `D10` → buzzer `+` (signal / positive leg)
-2. **Black** wire from `−` rail (GND) → buzzer `−` (negative leg)
-
-**Step 10 — Wire the OLED display**
-
-The OLED display has 4 pins: `VCC`, `GND`, `SDA`, `SCL`. The Adafruit 938 comes with a STEMMA QT connector or standard 0.1" header pins.
-
-1. **Red** wire from `+` rail (3.3V) → OLED `VCC`
-2. **Black** wire from `−` rail (GND) → OLED `GND`
-3. **Green** wire from QT Py `SDA` → OLED `SDA`
-4. **Yellow** wire from QT Py `SCL` → OLED `SCL`
-
-> The QT Py S3 also has a **STEMMA QT** JST connector on the board edge. If your OLED has a STEMMA QT cable, you can plug it straight in — no breadboard wiring needed for the OLED at all.
-
-**Step 11 — Power the receiver**
+**Step 8 — Power the receiver**
 
 Plug the QT Py S3 into a USB-C port. Check:
 - The OLED lights up (may show garbage until firmware is flashed — that's fine)
@@ -343,10 +292,9 @@ Plug the QT Py S3 into a USB-C port. Check:
 
 Before loading any firmware, do a quick visual check:
 
-- [ ] Every GND wire connects back to the `−` rail or a board GND pin
-- [ ] No bare wire legs are touching each other (short circuits)
+- [ ] STEMMA QT cable is fully clicked into both connectors, or manual wires are correctly pinned
 - [ ] OLED VCC goes to 3.3V, **not** 5V — the display is 3.3V logic
-- [ ] Buzzer and button have correct polarity (+/−)
+- [ ] No bare wire legs are touching each other (short circuits)
 - [ ] Both boards are powered via USB
 
 ---
@@ -357,6 +305,7 @@ Before loading any firmware, do a quick visual check:
 |---|---|---|
 | GND not shared between components | Signal pins float; nothing works | Run a black wire between all GND pins and the `−` rail |
 | OLED powered from 5V instead of 3.3V | Display may be damaged | Use the `3V3` pin only |
+| STEMMA QT cable not fully clicked in | OLED stays blank | Press connectors firmly until they click |
 | Wrong button terminals (LED vs switch) | Button presses don't register, or LED is always on | Test with a multimeter in continuity mode |
 | Charge-only USB cable | Board doesn't enumerate; firmware upload fails | Use a data-capable cable |
 | Jumper wire not fully seated | Intermittent connection | Push firmly until the connector clicks into the breadboard |
@@ -402,42 +351,57 @@ Before loading any firmware, do a quick visual check:
 
 ### 5) Verify operation
 
-1. Press a court button transmitter
-2. Confirm buzzer chirps and OLED shows that court as available
-3. Press that court's reset button on the rack and confirm OLED updates
+1. Press a court button transmitter — the LED flashes briefly and the board goes into deep sleep
+2. Confirm OLED shows that court as **Started** with a running MM:SS timer
+3. Press the same court button again to free the court
+4. Confirm OLED shows that court as **Open** and the average game duration updates
 
-### 6) Wait-time display + serial debug (MVP)
+### 6) Display layout
 
-The receiver tracks per-court wait times and updates a running average when each court is reset.
+The receiver tracks per-court game durations and updates a rolling average after each game ends.
 
-- OLED header shows overall average wait time (minutes)
-- OLED auto-pages every few seconds:
-   - Page 1: Courts 1-4
-   - Page 2: Courts 5-8
-- Per-court OLED format:
-   - `N` = live wait now (while court is available)
-   - `A` = running average wait for that court
+- Header: **RallyRack** (bold) + global `Avg:Xm` in the top-right corner
+- OLED auto-pages every 2.5 seconds:
+   - Page 1: Courts 1–4
+   - Page 2: Courts 5–8
+- Column headers: `#  Status  Now  Avg`
+- Per-court status values:
+   - `Open` — court is free; `Now` column shows `--`
+   - `Started` — game in progress; `Now` shows a live `MM:SS` timer
+   - `Fault` — no signal received for >45 seconds; `Now` shows `??`
+   - `---` — court has never been heard from since boot
 
-Open Serial Monitor at `115200` to view debug events:
+Example page 1:
+```text
+RallyRack                Avg:4m
+#  Status      Now    Avg
+------------------------------
+1 Started 04:00 2m
+2 Open -- 3m
+3 --- -- 0m
+4 Open -- 4m
+```
 
-- Court becomes available: `[AVAILABLE] Court 3 now open`
-- Duplicate available while already open: `[AVAILABLE] Court 3 already open (now=2m)`
-- Court reset with sample update: `[RESET] Court 3 wait=7m avg=5m n=12`
-- Reset with no active wait: `[RESET] Court 3 pressed with no active wait`
+When a game ends, a 5-second full-screen alert shows `Court X / open!`. When a game starts, a ~1.5-second animation plays (bouncing ball + slide-in text).
+
+Open Serial Monitor at `115200` to view state-change events.
 
 ## How It Works
 
-1. Players finish → press court button
-2. Button wakes from deep sleep → sends court ID via ESP-NOW → flashes LED → sleeps
-3. Rack buzzer chirps + OLED shows court as available + starts wait timer
-4. OLED shows live per-court wait (`N`) and running average (`A`)
-5. Next group grabs paddles → presses reset button on rack → OLED updates and average recalculates
+1. **Game starts** → player presses the court's arcade button
+2. Transmitter wakes from deep sleep → sends `occupied=1` via ESP-NOW → LED solid → goes back to deep sleep
+3. Receiver OLED plays a short animation, then shows the court as **Started** with a live MM:SS game timer
+4. **Game ends** → player presses the button again
+5. Transmitter wakes (GPIO interrupt) → toggles state → sends `occupied=0` via ESP-NOW → flashes LED → stays awake (available loop)
+6. Receiver records game duration into a rolling average, shows a 5-second **"Court X open!"** alert, then returns to the main screen with the court listed as **Open**
+7. While a court is occupied, the transmitter sends heartbeat packets every 15 seconds so the receiver knows it's still alive
+8. If no packet is received for 45 seconds, the court shows **Fault** until contact is restored
 
 ## Testing & Development
 
 ### Unit Tests (No Hardware)
 
-RallyRack includes 21 unit tests that validate all receiver logic without any hardware:
+RallyRack includes 24 unit tests that validate all receiver logic without any hardware:
 
 ```bash
 # Run all tests
@@ -448,11 +412,12 @@ pio test -e test -vv
 ```
 
 Tests cover:
-- Time calculations and rounding
-- Court state machine (idle → available → in-use → returned)
-- Wait-time averaging across multiple cycles
-- Display formatting and rendering
-- Debouncing logic
+- Time calculations, rounding, and MM:SS formatting
+- Court state machine (idle → available → started → open)
+- Game duration averaging (Welford's online algorithm)
+- Display text formatting (`Started MM:SS`, `Open --`, `Fault ??`)
+- Fault detection and automatic recovery
+- Debounce logic
 - Multi-court independence
 - Edge cases and boundary conditions
 
@@ -473,12 +438,13 @@ pio run -e oled_preview -t run -D run_args="--page 1"
 Example output:
 
 ```text
-RallyRack Wait Avg
-Overall: 3m  P1/2
-C1 U: 4m A: 2m
-C2 N: 1m A: 3m
-C3 N: -- A: 2m
-C4 N: 5m A: 4m
+RallyRack                Avg:4m
+#  Status      Now    Avg
+------------------------------
+1 Started 04:00 2m
+2 Open -- 3m
+3 --- -- 2m
+4 Open -- 4m
 ```
 
 ### Building Without Hardware
@@ -497,9 +463,10 @@ pio run -e get_mac_address
 
 When testing, courts display in one of these states:
 
-- `C1 N: -- A: 2m` — Court **idle**, average wait is 2 minutes
-- `C1 N: 5m A: 2m` — Court **available** for 5 minutes now, historically 2-minute average
-- `C1 U: 4m A: 2m` — Court **in use** for 4 minutes, historical average 2 minutes
+- `1 --- -- 0m` — Court **idle** (never heard from), no average yet
+- `1 Open -- 2m` — Court **open** (free to play), historical average 2 minutes; `Now` always shows `--` for open courts
+- `1 Started 04:00 2m` — Court **in use** for 4 minutes, historical average 2 minutes
+- `1 Fault ?? 2m` — Court **faulted** (no signal >45s), historical average 2 minutes
 
 ## Setup & Deployment
 
